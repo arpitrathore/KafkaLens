@@ -6,13 +6,13 @@
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{99DB910F-94D0-4923-8F30-759C962F5B48}
 AppName=KafkaLens
-AppVersion=0.5
-;AppVerName=KafkaLens 0.5
+AppVersion=0.6
+;AppVerName=KafkaLens 0.6
 AppPublisher=Pravin Chaudhary
 AppPublisherURL=https://www.kafkalens.com/
 AppSupportURL=https://www.kafkalens.com/
 AppUpdatesURL=https://www.kafkalens.com/
-DefaultDirName={commonpf64}\KafkaLens
+DefaultDirName={code:GetDefaultDirName}
 DisableProgramGroupPage=yes
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
 ;PrivilegesRequired=lowest
@@ -40,3 +40,16 @@ Name: "{autodesktop}\KafkaLens"; Filename: "{app}\KafkaLens.exe"; Tasks: desktop
 
 [Run]
 Filename: "{app}\KafkaLens.exe"; Description: "{cm:LaunchProgram,KafkaLens}"; Flags: nowait postinstall skipifsilent
+
+[Code]
+function GetDefaultDirName(Param: String): String;
+begin
+  if IsAdminInstallMode then
+  begin
+    Result := ExpandConstant('{commonpf64}\{#AppName}');
+  end
+  else
+  begin
+    Result := ExpandConstant('{userpf}\{#AppName}');
+  end;
+end;

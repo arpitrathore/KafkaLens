@@ -2,8 +2,10 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
@@ -23,6 +25,7 @@ public partial class MainViewModel : ViewModelBase
     public IClusterInfoRepository ClusterInfoRepository { get; }
     public IClientInfoRepository ClientInfoRepository { get; }
     public IClientFactory ClientFactory { get; }
+    public IUpdateService UpdateService { get; }
 
     // data
     public string? Title { get; private set; }
@@ -30,6 +33,7 @@ public partial class MainViewModel : ViewModelBase
     public ObservableCollection<ClusterViewModel> Clusters { get; set; } = null!;
 
     public ObservableCollection<OpenedClusterViewModel> OpenedClusters { get; } = new();
+
     private readonly IDictionary<string, List<OpenedClusterViewModel>> openedClustersMap
         = new Dictionary<string, List<OpenedClusterViewModel>>();
 
@@ -48,18 +52,27 @@ public partial class MainViewModel : ViewModelBase
     public IRelayCommand PreviousTabCommand { get; }
     public IRelayCommand<string> SelectTabCommand { get; }
     public IRelayCommand CloseCurrentTabCommand { get; }
+    public IAsyncRelayCommand CheckForUpdatesCommand { get; }
 
     public static Action ShowAboutDialog { get; set; } = () => { };
     public static Action ShowFolderOpenDialog { get; set; } = () => { };
     public static Action ShowEditClustersDialog { get; set; } = () => { };
+    public static Action<UpdateViewModel> ShowUpdateDialog { get; set; } = (vm) => { };
+    public static Action<string, string> ShowMessage { get; set; } = (title, message) => { };
 
     [ObservableProperty] private ObservableCollection<MenuItemViewModel>? menuItems;
 
-    [ObservableProperty]
-    private int selectedIndex = -1;
+    [ObservableProperty] private int selectedIndex = -1;
 
-    [ObservableProperty]
-    private string currentTheme;
+    [ObservableProperty] private string currentTheme;
+
+    [ObservableProperty] private bool autoCheckForUpdates;
+
+    partial void OnAutoCheckForUpdatesChanged(bool value)
+    {
+        settingsService.SetValue("AutoCheckForUpdates", value.ToString().ToLower());
+        UpdateAutoCheckMenuCheckedState();
+    }
 
     partial void OnCurrentThemeChanged(string value)
     {
@@ -89,6 +102,7 @@ public partial class MainViewModel : ViewModelBase
     private MenuItemViewModel closeTabMenuItem = null!;
 
     #region Init
+
     public MainViewModel(
         AppConfig appConfig,
         IClusterFactory clusterFactory,
@@ -98,11 +112,13 @@ public partial class MainViewModel : ViewModelBase
         IClusterInfoRepository clusterInfoRepository,
         IClientInfoRepository clientInfoRepository,
         IClientFactory clientFactory,
+        IUpdateService updateService,
         FormatterFactory formatterFactory)
     {
         ClusterInfoRepository = clusterInfoRepository;
         ClientInfoRepository = clientInfoRepository;
         ClientFactory = clientFactory;
+        UpdateService = updateService;
         Log.Information("Creating MainViewModel");
         this.clusterFactory = clusterFactory;
         this.settingsService = settingsService;
@@ -117,18 +133,23 @@ public partial class MainViewModel : ViewModelBase
         PreviousTabCommand = new RelayCommand(PreviousTab);
         SelectTabCommand = new RelayCommand<string>(s => SelectTab(int.Parse(s ?? "1")));
         CloseCurrentTabCommand = new RelayCommand(CloseCurrentTab);
+        CheckForUpdatesCommand = new AsyncRelayCommand(() => CheckForUpdatesAsync(false));
 
         OpenedClusters.CollectionChanged += (_, _) => UpdateCloseTabEnabled();
 
         Title = appConfig.Title;
 
         currentTheme = settingsService.GetValue("Theme") ?? "System";
+        autoCheckForUpdates =
+            bool.TryParse(settingsService.GetValue("AutoCheckForUpdates") ?? "true", out var autoCheck) && autoCheck;
 
         IsActive = true;
 
         timer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromSeconds(appConfig.ClusterRefreshIntervalSeconds > 0 ? appConfig.ClusterRefreshIntervalSeconds : 60)
+            Interval = TimeSpan.FromSeconds(appConfig.ClusterRefreshIntervalSeconds > 0
+                ? appConfig.ClusterRefreshIntervalSeconds
+                : 60)
         };
         timer.Tick += (s, e) => _ = LoadClusters();
         timer.Start();
@@ -137,6 +158,10 @@ public partial class MainViewModel : ViewModelBase
     protected override async void OnActivated()
     {
         await LoadClusters();
+        if (AutoCheckForUpdates)
+        {
+            _ = CheckForUpdatesAsync(true);
+        }
     }
 
     public async Task LoadClusters()
@@ -151,6 +176,7 @@ public partial class MainViewModel : ViewModelBase
             {
                 AddClusterToMenu(cluster);
             }
+
             CreateMenuItems();
 
             await clusterFactory.LoadClustersAsync();
@@ -159,7 +185,7 @@ public partial class MainViewModel : ViewModelBase
             if (Clusters is { Count: > 0 })
             {
                 var connected = Clusters.FirstOrDefault(c => c.IsConnected ?? false);
-                if  (connected != null)
+                if (connected != null)
                     OpenCluster(connected.Id);
             }
 #endif
@@ -193,6 +219,7 @@ public partial class MainViewModel : ViewModelBase
                 openClusterMenuItems.Remove(openClusterMenuItems.First(x => x.Header == item.Name));
             }
         }
+
         if (args?.NewItems != null)
         {
             foreach (ClusterViewModel item in args.NewItems)
@@ -205,6 +232,7 @@ public partial class MainViewModel : ViewModelBase
     #endregion Init
 
     #region Menus
+
     private void CreateMenuItems()
     {
         MenuItems = new ObservableCollection<MenuItemViewModel>
@@ -253,9 +281,15 @@ public partial class MainViewModel : ViewModelBase
         return items;
     }
 
+    private void UpdateMenuCheckedState()
+    {
+        UpdateThemeMenuCheckedState();
+        UpdateAutoCheckMenuCheckedState();
+    }
+
     private void UpdateThemeMenuCheckedState()
     {
-        var viewMenu = MenuItems?.FirstOrDefault(m => m.Header == "View");
+        var viewMenu = MenuItems?.FirstOrDefault(m => m.Header == "_View");
         var themeMenu = viewMenu?.Items?.FirstOrDefault(m => m.Header == "Theme");
 
         if (themeMenu?.Items != null)
@@ -264,6 +298,16 @@ public partial class MainViewModel : ViewModelBase
             {
                 item.IsChecked = item.Header == CurrentTheme;
             }
+        }
+    }
+
+    private void UpdateAutoCheckMenuCheckedState()
+    {
+        var helpMenu = MenuItems?.FirstOrDefault(m => m.Header == "_Help");
+        var autoCheckMenu = helpMenu?.Items?.FirstOrDefault(m => m.Header?.Contains("Auto-check") == true);
+        if (autoCheckMenu != null)
+        {
+            autoCheckMenu.IsChecked = AutoCheckForUpdates;
         }
     }
 
@@ -341,13 +385,25 @@ public partial class MainViewModel : ViewModelBase
         };
     }
 
-    private static MenuItemViewModel CreateHelpMenu()
+    private MenuItemViewModel CreateHelpMenu()
     {
         return new MenuItemViewModel
         {
             Header = "_Help",
             Items = new()
             {
+                new MenuItemViewModel
+                {
+                    Header = "Check for _Updates",
+                    Command = CheckForUpdatesCommand,
+                },
+                new MenuItemViewModel
+                {
+                    Header = "Auto-check for Updates",
+                    Command = new RelayCommand(() => AutoCheckForUpdates = !AutoCheckForUpdates),
+                    ToggleType = MenuItemToggleType.CheckBox,
+                    IsChecked = AutoCheckForUpdates
+                },
                 new MenuItemViewModel
                 {
                     Header = "_About",
@@ -393,6 +449,7 @@ public partial class MainViewModel : ViewModelBase
         {
             return existing;
         }
+
         NewKafkaCluster newCluster = new(clusterName, path);
         var cluster = await savedMessagesClient.AddAsync(newCluster);
         var clusterViewModel = new ClusterViewModel(cluster, savedMessagesClient);
@@ -447,7 +504,132 @@ public partial class MainViewModel : ViewModelBase
         {
             openedClustersMap.Remove(openedCluster.ClusterId);
         }
+
         OpenedClusters.Remove(openedCluster);
+    }
+
+    public async Task CheckForUpdatesAsync(bool silent)
+    {
+        Log.Information("Checking for updates...");
+        var result = await UpdateService.CheckForUpdateAsync();
+        if (result.UpdateAvailable)
+        {
+            if (!UpdateService.IsInstallDirectoryWritable())
+            {
+                if (!silent)
+                {
+                    ShowMessage("Update Available",
+                        "A new update is available, but KafkaLens does not have permission to update itself in the " +
+                        "current installation directory. Please move the application to a user-writable folder " +
+                        "to enable auto-updates.");
+                }
+
+                return;
+            }
+
+            Log.Information("Update available: {Version}", result.LatestVersion);
+            var updateVm = new UpdateViewModel(result);
+            updateVm.OnUpdate += () => PerformUpdate(result);
+            ShowUpdateDialog(updateVm);
+        }
+        else if (!silent)
+        {
+            Log.Information("No updates available.");
+            // the space At the end is intentional. Without that the last word is not displayed.
+            ShowMessage("Update Check", "You are already using the latest version of KafkaLens! ");
+        }
+    }
+
+    private void PerformUpdate(UpdateCheckResult result)
+    {
+        if (!UpdateService.IsInstallDirectoryWritable())
+        {
+            Log.Warning("Install directory is not writable. Cannot perform auto-update.");
+            return;
+        }
+
+        var appDir = AppContext.BaseDirectory;
+        var updaterPath = Path.Combine(appDir, "KafkaLens.Updater");
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) updaterPath += ".exe";
+
+        Log.Information("Looking for updater at: {UpdaterPath}", updaterPath);
+        Log.Information("App directory: {AppDir}", appDir);
+        Log.Information("Current directory: {CurrentDir}", Directory.GetCurrentDirectory());
+
+        if (!File.Exists(updaterPath))
+        {
+            Log.Error("Updater not found at {UpdaterPath}", updaterPath);
+
+            // Try to find the updater in the current directory
+            var currentDirUpdater = Path.Combine(Directory.GetCurrentDirectory(), "KafkaLens.Updater.exe");
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && File.Exists(currentDirUpdater))
+            {
+                Log.Information("Found updater in current directory: {CurrentDirUpdater}", currentDirUpdater);
+                updaterPath = currentDirUpdater;
+            }
+            else
+            {
+                Log.Error("Updater not found in current directory either: {CurrentDirUpdater}", currentDirUpdater);
+                return;
+            }
+        }
+        else
+        {
+            Log.Information("Updater found at: {UpdaterPath}", updaterPath);
+        }
+
+        var currentPid = Environment.ProcessId;
+        var executablePath = Process.GetCurrentProcess().MainModule?.FileName;
+
+        var processStartInfo = new ProcessStartInfo
+        {
+            FileName = updaterPath,
+            UseShellExecute = false
+        };
+
+        processStartInfo.ArgumentList.Add("--pid");
+        processStartInfo.ArgumentList.Add(currentPid.ToString());
+        processStartInfo.ArgumentList.Add("--url");
+        processStartInfo.ArgumentList.Add(result.DownloadUrl);
+        if (result.ChecksumUrl != null)
+        {
+            processStartInfo.ArgumentList.Add("--checksum-url");
+            processStartInfo.ArgumentList.Add(result.ChecksumUrl);
+        }
+
+        processStartInfo.ArgumentList.Add("--asset-name");
+        processStartInfo.ArgumentList.Add(result.AssetName);
+        processStartInfo.ArgumentList.Add("--dest");
+        processStartInfo.ArgumentList.Add(appDir);
+        processStartInfo.ArgumentList.Add("--executable");
+        processStartInfo.ArgumentList.Add(executablePath);
+
+        Log.Information("Attempting to start updater process: {UpdaterPath}", updaterPath);
+        Log.Information("Arguments: {Args}", string.Join(" ", processStartInfo.ArgumentList));
+
+        try
+        {
+            var process = Process.Start(processStartInfo);
+            Log.Information("Updater process started successfully with PID: {Pid}", process?.Id);
+
+            if (process is { HasExited: false })
+            {
+                Log.Information("Updater process is running, exiting main application");
+                // Exit the app
+                Environment.Exit(0);
+            }
+            else
+            {
+                Log.Warning("Updater process exited immediately or failed to start");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to start updater process");
+            Log.Error("Exception details: {Message}", ex.Message);
+            Log.Error("Stack trace: {StackTrace}", ex.StackTrace);
+            throw;
+        }
     }
 
     internal void OpenCluster(ClusterViewModel clusterViewModel)
@@ -466,7 +648,8 @@ public partial class MainViewModel : ViewModelBase
             newName = GenerateNewName(clusterViewModel.Name, alreadyOpened);
         }
 
-        var openedCluster = new OpenedClusterViewModel(settingsService, topicSettingsService, clusterViewModel, newName);
+        var openedCluster =
+            new OpenedClusterViewModel(settingsService, topicSettingsService, clusterViewModel, newName);
         alreadyOpened.Add(openedCluster);
         OpenedClusters.Add(openedCluster);
         _ = openedCluster.LoadTopicsAsync();
@@ -476,7 +659,8 @@ public partial class MainViewModel : ViewModelBase
     internal static string GenerateNewName(string clusterName, List<OpenedClusterViewModel> alreadyOpened)
     {
         var existingNames = alreadyOpened.ConvertAll(c => c.Name);
-        var suffixes = existingNames.ConvertAll(n => n.Length > clusterName.Length + 1 ? n.Substring(clusterName.Length + 1) : "");
+        var suffixes = existingNames.ConvertAll(n =>
+            n.Length > clusterName.Length + 1 ? n.Substring(clusterName.Length + 1) : "");
         suffixes.Remove("");
         var numbersStrings = suffixes.ConvertAll(s => s.Length > 1 ? s.Substring(1, s.Length - 2) : "");
         var numbers = numbersStrings.ConvertAll(ns => int.TryParse(ns, out var number) ? number : 0);
@@ -490,6 +674,7 @@ public partial class MainViewModel : ViewModelBase
                 break;
             }
         }
+
         return $"{clusterName} ({smallestAvailable})";
     }
 }

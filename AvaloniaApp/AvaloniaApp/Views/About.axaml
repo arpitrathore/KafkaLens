@@ -3,13 +3,12 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:KafkaLens.ViewModels;assembly=KafkaLens.ViewModels"
-        xmlns:actipro="http://schemas.actiprosoftware.com/avaloniaui"
         mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="400"
         x:Class="AvaloniaApp.Views.About"
         Title="About KafkaLens"
         xmlns:views="clr-namespace:AvaloniaApp.Views"
         x:DataType="views:About"
-        Width="400" Height="300"
+        Width="400" Height="320"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource ThemeAboutBackgroundBrush}"
         CanResize="False">
@@ -28,32 +27,52 @@
                      Foreground="{DynamicResource ThemeForegroundBrush}"/>
 
             <!-- Version -->
-            <TextBlock Text="{Binding AppVersion}"
-                     HorizontalAlignment="Center"
-                     Opacity="0.8"
-                     Margin="0,0,0,10"/>
+            <StackPanel HorizontalAlignment="Center" Spacing="5" Margin="0,0,0,10">
+                <TextBlock Text="{Binding AppVersion}"
+                         HorizontalAlignment="Center"
+                         Opacity="0.8"/>
+                <Button Content="Check for Updates"
+                        HorizontalAlignment="Center"
+                        FontSize="12"
+                        Padding="10,2"
+                        Click="CheckForUpdates_OnClick"/>
+            </StackPanel>
 
             <!-- Links -->
             <StackPanel Spacing="8">
-                <actipro:HyperlinkTextBlock x:Name="ProductUrl"
-                                        HorizontalAlignment="Center"
-                                        Text="Product Page ↗"
-                                        Click="Url_OnClick"
-                                        CommandParameter="https://www.KafkaLens.com"
-                                        Cursor="Hand"
-                                        FontSize="14"
-                                        Foreground="{DynamicResource ThemeAccentBrush}"
-                                        x:CompileBindings="False"/>
+                <Button x:Name="ProductUrl"
+                        HorizontalAlignment="Center"
+                        Content="Product Page ↗"
+                        Click="Url_OnClick"
+                        CommandParameter="https://www.KafkaLens.com"
+                        Cursor="Hand"
+                        FontSize="14"
+                        Foreground="{DynamicResource ThemeAccentBrush}"
+                        Background="Transparent"
+                        BorderThickness="0">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover">
+                            <Setter Property="TextBlock.TextDecorations" Value="Underline"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
 
-                <actipro:HyperlinkTextBlock x:Name="ProjectUrl"
-                                        HorizontalAlignment="Center"
-                                        Text="GitHub Page ↗"
-                                        Click="Url_OnClick"
-                                        CommandParameter="https://github.com/fatichar/KafkaLens"
-                                        Cursor="Hand"
-                                        FontSize="14"
-                                        Foreground="{DynamicResource ThemeAccentBrush}"
-                                        x:CompileBindings="False"/>
+                <Button x:Name="ProjectUrl"
+                        HorizontalAlignment="Center"
+                        Content="GitHub Page ↗"
+                        Click="Url_OnClick"
+                        CommandParameter="https://github.com/fatichar/KafkaLens"
+                        Cursor="Hand"
+                        FontSize="14"
+                        Foreground="{DynamicResource ThemeAccentBrush}"
+                        Background="Transparent"
+                        BorderThickness="0">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover">
+                            <Setter Property="TextBlock.TextDecorations" Value="Underline"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
             </StackPanel>
 
             <!-- Copyright -->

@@ -29,6 +29,10 @@
     <ItemGroup>
         <ProjectReference Include="..\..\LocalClient\LocalClient.csproj"/>
         <ProjectReference Include="..\AvaloniaApp\AvaloniaApp.csproj"/>
+        <ProjectReference Include="..\..\Updater\KafkaLens.Updater\KafkaLens.Updater.csproj">
+            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </ProjectReference>
     </ItemGroup>
 
     <ItemGroup>
