@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using KafkaLens.Shared.Models;
 using KafkaLens.Shared;
@@ -13,13 +14,19 @@ public sealed partial class ClusterViewModel: ConnectionViewModelBase
     public ObservableCollection<Topic> Topics { get; } = new();
 
     public string Id => cluster.Id;
-    public string Name => cluster.Name;
-    public string Address => cluster.Address;
+    
+    [ObservableProperty]
+    private string name;
+    
+    [ObservableProperty]
+    private string address;
 
     public ClusterViewModel(KafkaCluster cluster, IKafkaLensClient client)
     {
         Client = client;
         this.cluster = cluster;
+        name = cluster.Name;
+        address = cluster.Address;
         IsConnected = this.cluster.IsConnected;
 
         LoadTopicsCommand = new AsyncRelayCommand(LoadTopicsAsync);
@@ -27,7 +34,7 @@ public sealed partial class ClusterViewModel: ConnectionViewModelBase
 
     public async Task CheckConnectionAsync()
     {
-        IsConnected = await Client.ValidateConnectionAsync(Address);
+        IsConnected = await Client.ValidateConnectionAsync(address);
     }
 
     private async Task LoadTopicsAsync()

@@ -203,6 +203,10 @@ public partial class OpenedClusterViewModel : ViewModelBase, ITreeNode
                 _ = LoadTopicsAsync();
             }
         }
+        else if (e.PropertyName == nameof(ClusterViewModel.Name))
+        {
+            Name = cluster.Name;
+        }
     }
 
     #region SAVE MESSAGES

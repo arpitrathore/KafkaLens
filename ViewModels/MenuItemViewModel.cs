@@ -8,7 +8,9 @@ namespace KafkaLens.ViewModels;
 
 public partial class MenuItemViewModel : ViewModelBase
 {
-    public string Header { get; set; } = "";
+    [ObservableProperty]
+    private string header = "";
+    
     public ICommand? Command { get; set; }
     public object? CommandParameter { get; set; }
     public KeyGesture? Gesture { get; set; }

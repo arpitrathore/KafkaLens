@@ -304,15 +304,7 @@ public partial class MainViewModel : ViewModelBase
     private MenuItemViewModel CreateOpenMenuItem(ClusterViewModel c)
     {
         var statusIcon = new StatusIconViewModel { Color = c.StatusColor };
-        c.PropertyChanged += (s, e) =>
-        {
-            if (e.PropertyName == nameof(ClusterViewModel.StatusColor))
-            {
-                statusIcon.Color = c.StatusColor;
-            }
-        };
-
-        return new MenuItemViewModel
+        var menuItem = new MenuItemViewModel
         {
             Header = c.Name,
             Command = OpenClusterCommand,
@@ -320,6 +312,20 @@ public partial class MainViewModel : ViewModelBase
             IsEnabled = true,
             Icon = statusIcon
         };
+        
+        c.PropertyChanged += (s, e) =>
+        {
+            if (e.PropertyName == nameof(ClusterViewModel.StatusColor))
+            {
+                statusIcon.Color = c.StatusColor;
+            }
+            else if (e.PropertyName == nameof(ClusterViewModel.Name))
+            {
+                menuItem.Header = c.Name;
+            }
+        };
+
+        return menuItem;
     }
 
     private MenuItemViewModel CreateOpenMenu()

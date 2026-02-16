@@ -92,7 +92,8 @@ public class EditClustersViewModel
     {
         var updated = new ClusterInfo(cluster.Id, name, address);
         ClusterRepository.Update(updated);
-        // Cluster will be refreshed on next LoadClusters call
+        cluster.Name = name;
+        cluster.Address = address;
         _ = cluster.CheckConnectionAsync();
     }
 
@@ -129,16 +130,20 @@ public class EditClustersViewModel
                            existing.Info.Address != updated.Address || 
                            existing.Info.Protocol != updated.Protocol;
             
-            var index = Clients.IndexOf(existing);
-            var vm = new ClientInfoViewModel(updated);
-            Clients[index] = vm;
-            _ = CheckClientConnectionAsync(vm);
+            var oldName = existing.Name;
+            
+            // Update the existing ViewModel instead of replacing it
+            existing.UpdateInfo(updated);
+            _ = CheckClientConnectionAsync(existing);
             
             // Only reload clusters if there are actual changes
             if (hasChanges)
             {
+                // Reload the ClientFactory to pick up the new client configuration
+                await ClientFactory.LoadClientsAsync();
+                
                 // Remove old clusters and reload from updated client
-                var oldClusters = AllClusters.Where(c => c.Client.Name == updated.Name).ToList();
+                var oldClusters = AllClusters.Where(c => c.Client.Name == oldName).ToList();
                 foreach (var cluster in oldClusters)
                 {
                     AllClusters.Remove(cluster);
