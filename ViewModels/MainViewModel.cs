@@ -48,7 +48,7 @@ public partial class MainViewModel : ViewModelBase
     public IRelayCommand PreviousTabCommand { get; }
     public IRelayCommand<string> SelectTabCommand { get; }
     public IRelayCommand CloseCurrentTabCommand { get; }
-            
+
     public static Action ShowAboutDialog { get; set; } = () => { };
     public static Action ShowFolderOpenDialog { get; set; } = () => { };
     public static Action ShowEditClustersDialog { get; set; } = () => { };
@@ -132,11 +132,6 @@ public partial class MainViewModel : ViewModelBase
         };
         timer.Tick += (s, e) => _ = LoadClusters();
         timer.Start();
-
-        if (Clusters is { Count: > 0 })
-        {
-            // OpenCluster(Clusters[0].Id);
-        }
     }
 
     protected override async void OnActivated()
@@ -159,6 +154,13 @@ public partial class MainViewModel : ViewModelBase
             CreateMenuItems();
 
             await clusterFactory.LoadClustersAsync();
+
+            if (Clusters is { Count: > 0 })
+            {
+                var connected = Clusters.FirstOrDefault(c => c.IsConnected ?? false);
+                if  (connected != null)
+                    OpenCluster(connected.Id);
+            }
         }
         else
         {
@@ -209,7 +211,7 @@ public partial class MainViewModel : ViewModelBase
             CreateViewMenu(),
             CreateHelpMenu()
         };
-        
+
         // Ensure the initial theme state is reflected in the menu
         UpdateThemeMenuCheckedState();
     }
@@ -234,18 +236,18 @@ public partial class MainViewModel : ViewModelBase
     {
         var themes = new[] { "Light", "Bright", "Ocean", "Forest", "Purple", "Dark", "System" };
         var items = new ObservableCollection<MenuItemViewModel>();
-        
+
         foreach (var theme in themes)
         {
-            items.Add(new MenuItemViewModel 
-            { 
+            items.Add(new MenuItemViewModel
+            {
                 Header = theme,
                 Command = new RelayCommand(() => CurrentTheme = theme),
                 ToggleType = MenuItemToggleType.Radio,
                 IsChecked = theme == CurrentTheme
             });
         }
-        
+
         return items;
     }
 
@@ -253,7 +255,7 @@ public partial class MainViewModel : ViewModelBase
     {
         var viewMenu = MenuItems?.FirstOrDefault(m => m.Header == "View");
         var themeMenu = viewMenu?.Items?.FirstOrDefault(m => m.Header == "Theme");
-        
+
         if (themeMenu?.Items != null)
         {
             foreach (var item in themeMenu.Items)

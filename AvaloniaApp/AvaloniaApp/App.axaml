@@ -56,6 +56,57 @@
             <Setter Property="TextElement.Foreground" Value="{DynamicResource ThemeButtonForegroundBrush}" />
         </Style>
 
+        <!-- Custom TabItem styling to remove background highlight and adjust underline position -->
+        <Style Selector="TabItem">
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="FontSize" Value="16" />
+        </Style>
+        <Style Selector="TabItem:selected">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="TabItem:selected:pointerover">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <!-- Adjust underline position to prevent text overlap -->
+        <Style Selector="TabItem:selected /template/ Border#PART_SelectedPipe">
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
+
+        <!-- CalendarDatePicker styling -->
+        <Style Selector="CalendarDatePicker /template/ Grid#PART_FlyoutButtonContentGrid">
+            <Setter Property="Background" Value="{DynamicResource ComboBoxBackground}" />
+        </Style>
+        <Style Selector="CalendarDatePicker /template/ Button">
+            <Setter Property="Background" Value="{DynamicResource ThemeButtonBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}" />
+        </Style>
+        <Style Selector="CalendarDatePicker /template/ Path">
+            <Setter Property="Fill" Value="{DynamicResource ThemeForegroundBrush}" />
+        </Style>
+
+        <!-- Calendar popup styling - fully theme-aware -->
+        <Style Selector="Calendar">
+            <Setter Property="Background" Value="{DynamicResource ComboBoxDropDownBackground}" />
+        </Style>
+        <Style Selector="CalendarItem">
+            <Setter Property="Background" Value="{DynamicResource ComboBoxDropDownBackground}" />
+        </Style>
+        <Style Selector="CalendarItem /template/ Button#PART_HeaderButton">
+            <Setter Property="Background" Value="{DynamicResource ComboBoxDropDownBackground}" />
+            <Setter Property="Foreground" Value="{DynamicResource ComboBoxForeground}" />
+        </Style>
+        <Style Selector="CalendarItem /template/ Button#PART_PreviousButton">
+            <Setter Property="Background" Value="{DynamicResource ComboBoxDropDownBackground}" />
+            <Setter Property="Foreground" Value="{DynamicResource ComboBoxForeground}" />
+        </Style>
+        <Style Selector="CalendarItem /template/ Button#PART_NextButton">
+            <Setter Property="Background" Value="{DynamicResource ComboBoxDropDownBackground}" />
+            <Setter Property="Foreground" Value="{DynamicResource ComboBoxForeground}" />
+        </Style>
+
+        
         <!-- Subtle GridSplitter -->
         <Style Selector="GridSplitter">
             <Setter Property="Background" Value="{DynamicResource ThemeGridSplitterBrush}" />

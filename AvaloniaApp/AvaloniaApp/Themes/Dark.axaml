@@ -19,4 +19,15 @@
     <SolidColorBrush x:Key="TreeViewItemForegroundSelectedPointerOver">#FFFFFF</SolidColorBrush>
     <SolidColorBrush x:Key="TreeViewItemBackgroundSelectedPressed">#553794ff</SolidColorBrush>
     <SolidColorBrush x:Key="TreeViewItemForegroundSelectedPressed">#FFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="TabItemHeaderSelectedPipeFill">#3794ff</SolidColorBrush>
+    <SolidColorBrush x:Key="TabItemHeaderForegroundSelected">#d4d4d4</SolidColorBrush>
+    <SolidColorBrush x:Key="TabItemHeaderForegroundUnselected">#999999</SolidColorBrush>
+    <SolidColorBrush x:Key="TabItemHeaderForegroundUnselectedPointerOver">#d4d4d4</SolidColorBrush>
+    <SolidColorBrush x:Key="TabItemHeaderBackgroundSelected">#333794ff</SolidColorBrush>
+    <SolidColorBrush x:Key="ComboBoxItemBackgroundSelected">#333794ff</SolidColorBrush>
+    <SolidColorBrush x:Key="ComboBoxItemForegroundSelected">#FFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPointerOver">#443794ff</SolidColorBrush>
+    <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPointerOver">#FFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPressed">#553794ff</SolidColorBrush>
+    <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPressed">#FFFFFF</SolidColorBrush>
 </ResourceDictionary>

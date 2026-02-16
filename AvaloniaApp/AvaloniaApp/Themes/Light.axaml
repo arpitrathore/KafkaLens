@@ -19,4 +19,15 @@
     <SolidColorBrush x:Key="TreeViewItemForegroundSelectedPointerOver">#000000</SolidColorBrush>
     <SolidColorBrush x:Key="TreeViewItemBackgroundSelectedPressed">#550066CC</SolidColorBrush>
     <SolidColorBrush x:Key="TreeViewItemForegroundSelectedPressed">#000000</SolidColorBrush>
+    <SolidColorBrush x:Key="TabItemHeaderSelectedPipeFill">#0066CC</SolidColorBrush>
+    <SolidColorBrush x:Key="TabItemHeaderForegroundSelected">#000000</SolidColorBrush>
+    <SolidColorBrush x:Key="TabItemHeaderForegroundUnselected">#666666</SolidColorBrush>
+    <SolidColorBrush x:Key="TabItemHeaderForegroundUnselectedPointerOver">#333333</SolidColorBrush>
+    <SolidColorBrush x:Key="TabItemHeaderBackgroundSelected">#330066CC</SolidColorBrush>
+    <SolidColorBrush x:Key="ComboBoxItemBackgroundSelected">#330066CC</SolidColorBrush>
+    <SolidColorBrush x:Key="ComboBoxItemForegroundSelected">#000000</SolidColorBrush>
+    <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPointerOver">#440066CC</SolidColorBrush>
+    <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPointerOver">#000000</SolidColorBrush>
+    <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPressed">#550066CC</SolidColorBrush>
+    <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPressed">#000000</SolidColorBrush>
 </ResourceDictionary>

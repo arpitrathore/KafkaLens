@@ -43,7 +43,7 @@ public partial class Browser : UserControl
 
         WeakReferenceMessenger.Default.Register<ThemeChangedMessage>(this, (r, m) =>
         {
-            ApplyTextMateTheme(m.Value);
+            OnThemeChanged(m.Value);
         });
     }
 
@@ -144,18 +144,10 @@ public partial class Browser : UserControl
 
     private void SetupTextMateHighlighting()
     {
-        var currentTheme = GetCurrentTextMateTheme();
-        _registryOptions = new RegistryOptions(currentTheme);
-        _textMateInstallation = MessageViewer.InstallTextMate(_registryOptions);
-
-        var jsonLanguage = _registryOptions.GetLanguageByExtension(".json");
-        if (jsonLanguage != null)
-        {
-            _textMateInstallation.SetGrammar(_registryOptions.GetScopeByLanguageId(jsonLanguage.Id));
-        }
+        ApplyTextMateTheme(GetSystemTextMateTheme());
     }
 
-    private void ApplyTextMateTheme(string themeName)
+    private void OnThemeChanged(string themeName)
     {
         var textMateTheme = themeName switch
         {
@@ -164,6 +156,11 @@ public partial class Browser : UserControl
             _ => GetSystemTextMateTheme()
         };
 
+        ApplyTextMateTheme(textMateTheme);
+    }
+
+    private void ApplyTextMateTheme(ThemeName textMateTheme)
+    {
         _registryOptions = new RegistryOptions(textMateTheme);
         _textMateInstallation?.Dispose();
         _textMateInstallation = MessageViewer.InstallTextMate(_registryOptions);
@@ -173,16 +170,8 @@ public partial class Browser : UserControl
         {
             _textMateInstallation.SetGrammar(_registryOptions.GetScopeByLanguageId(jsonLanguage.Id));
         }
-    }
-
-    private ThemeName GetCurrentTextMateTheme()
-    {
-        var app = Avalonia.Application.Current;
-        if (app?.ActualThemeVariant == ThemeVariant.Dark)
-        {
-            return ThemeName.DarkPlus;
-        }
-        return ThemeName.LightPlus;
+        
+        ApplySelectionColors();
     }
 
     private static ThemeName GetSystemTextMateTheme()
@@ -193,6 +182,24 @@ public partial class Browser : UserControl
             return ThemeName.DarkPlus;
         }
         return ThemeName.LightPlus;
+    }
+
+    private void ApplySelectionColors()
+    {
+        if (MessageViewer?.TextArea == null) return;
+        
+        var app = Avalonia.Application.Current;
+        if (app?.Resources == null) return;
+
+        if (app.Resources.TryGetResource("ThemeSelectionBrush", null, out var selectionBrush) && selectionBrush is Avalonia.Media.IBrush brush)
+        {
+            MessageViewer.TextArea.SelectionBrush = brush;
+        }
+
+        if (app.Resources.TryGetResource("ThemeSelectionForegroundBrush", null, out var selectionForeground) && selectionForeground is Avalonia.Media.IBrush fgBrush)
+        {
+            MessageViewer.TextArea.SelectionForeground = fgBrush;
+        }
     }
 
     private void messagesGrid_LoadingRow(object sender, DataGridRowEventArgs e)

@@ -28,7 +28,8 @@
                 <DockPanel Margin="0">
                     <views:MessagesToolbar x:Name="MessagesToolbar" DockPanel.Dock="Top"
                                            HorizontalAlignment="Stretch"
-                                           Background="{DynamicResource ThemeToolbarBackgroundBrush}" BorderThickness="0">
+                                           Background="{DynamicResource ThemeToolbarBackgroundBrush}"
+                                           BorderThickness="0,1,0,1" BorderBrush="{DynamicResource ThemeBorderBrush}">
                     </views:MessagesToolbar>
 
                     <DataGrid Name="MessagesGrid" AutoGenerateColumns="False" HeadersVisibility="All"
