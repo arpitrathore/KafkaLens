@@ -17,7 +17,7 @@
         <StackPanel HorizontalAlignment="Center" Spacing="15">
             <!-- Logo/Icon -->
             <Viewbox Width="64" Height="64">
-                <Image Source="/Assets/logo.png" />
+                <Image Source="/Assets/KafkaLens_logo.svg" />
             </Viewbox>
             
             <!-- App Title -->

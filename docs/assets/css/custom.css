@@ -1,0 +1,56 @@
+---
+---
+
+/* Custom CSS for KafkaLens homepage - aggressive approach */
+body, html {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+.site-content, .main-content, .page-content, .wrapper {
+  max-width: 2500px !important;
+  width: 100% !important;
+}
+
+/* Target all possible containers */
+body .main-content,
+body .site-content,
+body .page-content,
+body .wrapper,
+body .container,
+body .content {
+  max-width: 2600px !important;
+  width: 100% !important;
+}
+
+/* More specific selectors for Just the Docs */
+body .site-wrapper .site-content,
+body .site-wrapper .main-content,
+body .site-wrapper .page-content {
+  max-width: 2600px !important;
+  width: 100% !important;
+}
+
+/* Override any inline styles or theme defaults */
+*[style*="max-width"] {
+  max-width: 2600px !important;
+}
+
+/* Hide sidebar on homepage */
+body.home .site-nav,
+body.home .side-bar,
+body.home .navigation {
+  display: none !important;
+}
+
+/* Full width content on homepage */
+body.home .main-content {
+  margin-left: 0 !important;
+  max-width: 100% !important;
+}
+
+@media (min-width: 50rem) {
+  .main {
+    max-width: 90rem !important; /* 90rem = 1440px (assuming 1rem = 16px) */
+  }
+}

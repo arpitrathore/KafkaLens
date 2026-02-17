@@ -4,13 +4,14 @@ title: Home
 nav_order: 1
 description: "KafkaLens: The ultimate desktop Kafka client."
 permalink: /
+search_enabled: false
 ---
 
 <div class="p-6 mb-6 text-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px;">
   <h1 class="text-white" style="font-size: 3.5rem; font-weight: 800; margin-bottom: 1rem; letter-spacing: -1px; border-bottom: none;">KafkaLens</h1>
   <p style="font-size: 1.5rem; font-weight: 300; max-width: 800px; margin: 0 auto 2rem auto; opacity: 0.9;">The high-performance, cross-platform desktop client that makes Kafka development feel effortless.</p>
   <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
-    <a href="{{ site.baseurl }}/download" class="btn btn-primary" style="padding: 12px 30px; font-size: 1.1rem; border-radius: 6px; background-color: white; color: #764ba2; border: none;">Get Started for Free</a>
+    <a href="{{ site.baseurl }}/download" class="btn btn-primary" style="padding: 12px 30px; font-size: 1.1rem; border-radius: 6px; background-color: #ff6b35; color: white; border: none; font-weight: 600; box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);">Get Started for Free</a>
     <a href="{{ site.baseurl }}/usage" class="btn" style="padding: 12px 30px; font-size: 1.1rem; border-radius: 6px; background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4);">Explore Docs</a>
   </div>
 </div>
@@ -94,7 +95,7 @@ permalink: /
 ---
 
 <div class="text-center py-10">
-  <h2 class="fs-8">Ready to master your Kafka streams?</h2>
+  <h2 class="fs-8">Ready to master your Kafka clusters?</h2>
   <p class="fs-5 mb-6">Join developers worldwide using KafkaLens to simplify their daily tasks.</p>
-  <a href="{{ site.baseurl }}/download" class="btn btn-primary" style="padding: 15px 40px; font-size: 1.2rem; border-radius: 8px;">Download KafkaLens Now</a>
+  <a href="{{ site.baseurl }}/download" class="btn btn-primary" style="padding: 15px 40px; font-size: 1.2rem; border-radius: 8px; background-color: #ff6b35; color: white; border: none; font-weight: 600; box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);">Download KafkaLens Now</a>
 </div>

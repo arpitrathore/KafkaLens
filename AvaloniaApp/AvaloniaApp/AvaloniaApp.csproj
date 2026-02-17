@@ -6,7 +6,6 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
   <ItemGroup>
-    <AvaloniaResource Include="Assets\**" />
     <AvaloniaResource Include="Themes\**" />
   </ItemGroup>
   <ItemGroup>
