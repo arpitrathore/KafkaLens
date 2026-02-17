@@ -1,0 +1,214 @@
+name: Publish Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '10.0.x'
+
+jobs:
+  extract-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is_tag: ${{ steps.check_tag.outputs.is_tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            VERSION=$(grep -oP '(?<=<Version>)[^<]+' Directory.Build.props)
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check if tag
+        id: check_tag
+        run: |
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "is_tag=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_tag=false" >> $GITHUB_OUTPUT
+          fi
+
+  build-windows:
+    needs: extract-version
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Publish Windows
+        id: publish
+        run: |
+          $version = "${{ needs.extract-version.outputs.version }}"
+          $platformName = "win-x64"
+          $baseName = "KafkaLens-${version}-${platformName}"
+          $outDir = "Releases/KafkaLens_win"
+          $releasesDir = "Releases"
+
+          # Build
+          dotnet publish AvaloniaApp/AvaloniaApp.Desktop/AvaloniaApp.Desktop.csproj `
+            -r "$platformName" `
+            -c Release `
+            --sc `
+            -p:PublishTrimmed=false `
+            -o "$outDir"
+
+          # Create installer
+          & "ISCC.exe" "Installer/install_windows.iss"
+
+          # Rename installer to standard format
+          $installerName = "KafkaLens-${version}-win-x64-installer.exe"
+          Move-Item "$releasesDir/KafkaLensSetup.exe" "$releasesDir/$installerName"
+
+          echo "Created: $releasesDir/$installerName"
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+
+          # Cleanup
+          Remove-Item -Recurse -Force "$outDir"
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kafkalens-windows-${{ steps.publish.outputs.version }}
+          path: Releases/KafkaLens-*.exe
+
+  build-linux:
+    needs: extract-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Publish Linux
+        id: publish
+        run: |
+          version="${{ needs.extract-version.outputs.version }}"
+          platformName="linux-x64"
+          baseName="KafkaLens-${version}-${platformName}"
+          outDir="Releases/${baseName}"
+          zipFile="Releases/${baseName}.zip"
+
+          # Build
+          dotnet publish AvaloniaApp/AvaloniaApp.Desktop/AvaloniaApp.Desktop.csproj \
+            -r "$platformName" \
+            -c Release \
+            --sc \
+            -p:PublishTrimmed=false \
+            -o "$outDir"
+
+          # Package
+          rm -f "$zipFile"
+          cd Releases
+          zip -r "${baseName}.zip" "$baseName"
+          cd ..
+
+          echo "Created: $zipFile"
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+          # Cleanup
+          rm -rf "$outDir"
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kafkalens-linux-${{ steps.publish.outputs.version }}
+          path: Releases/KafkaLens-*.zip
+
+  build-macos:
+    needs: extract-version
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Publish macOS
+        id: publish
+        run: |
+          version="${{ needs.extract-version.outputs.version }}"
+          platformName="osx-arm64"
+          baseName="KafkaLens-${version}-macos-arm64"
+          outDir="Releases/${baseName}"
+          zipFile="Releases/${baseName}.zip"
+
+          # Build
+          dotnet publish AvaloniaApp/AvaloniaApp.Desktop/AvaloniaApp.Desktop.csproj \
+            -r "$platformName" \
+            -c Release \
+            --sc \
+            -p:PublishTrimmed=false \
+            -o "$outDir"
+
+          # Package
+          rm -f "$zipFile"
+          cd Releases
+          zip -r "${baseName}.zip" "$baseName"
+          cd ..
+
+          echo "Created: $zipFile"
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+          # Cleanup
+          rm -rf "$outDir"
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kafkalens-macos-${{ steps.publish.outputs.version }}
+          path: Releases/KafkaLens-*.zip
+
+  create-release:
+    needs: [extract-version, build-windows, build-linux, build-macos]
+    runs-on: ubuntu-latest
+    if: needs.extract-version.outputs.is_tag == 'true'
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/kafkalens-windows-${{ needs.extract-version.outputs.version }}/*.exe
+            artifacts/kafkalens-linux-${{ needs.extract-version.outputs.version }}/*.zip
+            artifacts/kafkalens-macos-${{ needs.extract-version.outputs.version }}/*.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
