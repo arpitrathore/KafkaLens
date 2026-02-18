@@ -20,10 +20,12 @@ public abstract class ConsumerBase : IKafkaConsumer
         {
             Topics.Clear();
         }
+
         if (Topics.Count != 0)
         {
             return Topics.Values.ToList();
         }
+
         try
         {
             LoadTopics();
@@ -33,6 +35,7 @@ public abstract class ConsumerBase : IKafkaConsumer
             Console.WriteLine(e);
             throw new Exception("Failed to load topics", e);
         }
+
         return Topics.Values.ToList();
     }
 
@@ -51,45 +54,56 @@ public abstract class ConsumerBase : IKafkaConsumer
 
     protected abstract List<Topic> FetchTopics();
 
-    public MessageStream GetMessageStream(string topic, FetchOptions options, CancellationToken cancellationToken = default)
+    public MessageStream GetMessageStream(string topic, FetchOptions options,
+        CancellationToken cancellationToken = default)
     {
         var messages = new MessageStream();
-        Task.Run(() => {
+        Task.Run(() =>
+        {
             Log.Information("Fetching {MessageCount} messages for topic {Topic}", options.Limit, topic);
-            GetMessages(topic, options, messages, cancellationToken);
-            Log.Information("Fetched {MessageCount} messages for topic {Topic}", messages.Messages.Count, topic);
+            GetMessagesAsync(topic, options, messages, cancellationToken)
+                .ContinueWith(
+                    t => Log.Information("Fetched {MessageCount} messages for topic {Topic}", messages.Messages.Count,
+                        topic), cancellationToken);
         }, cancellationToken);
         return messages;
     }
 
-    public MessageStream GetMessageStream(string topic, int partition, FetchOptions options, CancellationToken cancellationToken = default)
+    public MessageStream GetMessageStream(string topic, int partition, FetchOptions options,
+        CancellationToken cancellationToken = default)
     {
         var messages = new MessageStream();
-        Task.Run(() => {
-            Log.Information("Fetching {MessageCount} messages for topic {Topic} partition {Partition}", options.Limit, topic, partition);
-            GetMessages(topic, partition, options, messages, cancellationToken);
-            Log.Information("Fetched {MessageCount} messages for topic {Topic} partition {Partition}", messages.Messages.Count, topic, partition);
+        Task.Run(() =>
+        {
+            Log.Information("Fetching {MessageCount} messages for topic {Topic} partition {Partition}", options.Limit,
+                topic, partition);
+            GetMessagesAsync(topic, partition, options, messages, cancellationToken);
+            Log.Information("Fetched {MessageCount} messages for topic {Topic} partition {Partition}",
+                messages.Messages.Count, topic, partition);
         }, cancellationToken);
         return messages;
     }
 
-    public async Task<List<Message>> GetMessagesAsync(string topic, FetchOptions options, CancellationToken cancellationToken = default)
+    public async Task<List<Message>> GetMessagesAsync(string topic, FetchOptions options,
+        CancellationToken cancellationToken = default)
     {
         var messages = new MessageStream();
-        await Task.Run(() => GetMessages(topic, options, messages, cancellationToken), cancellationToken);
+        await GetMessagesAsync(topic, options, messages, cancellationToken);
         return messages.Messages.ToList();
     }
 
-    public async Task<List<Message>> GetMessagesAsync(string topic, int partition, FetchOptions options, CancellationToken cancellationToken = default)
+    public async Task<List<Message>> GetMessagesAsync(string topic, int partition, FetchOptions options,
+        CancellationToken cancellationToken = default)
     {
         var messages = new MessageStream();
-        await Task.Run(() => GetMessages(topic, partition, options, messages, cancellationToken), cancellationToken);
+        await GetMessagesAsync(topic, partition, options, messages, cancellationToken);
         return messages.Messages.ToList();
     }
 
-    protected abstract void GetMessages(string topicName, FetchOptions options, MessageStream messages, CancellationToken cancellationToken);
+    protected abstract Task GetMessagesAsync(string topicName, FetchOptions options, MessageStream messages,
+        CancellationToken cancellationToken);
 
-    protected abstract void GetMessages(string topicName, int partition, FetchOptions options,
+    protected abstract Task GetMessagesAsync(string topicName, int partition, FetchOptions options,
         MessageStream messages, CancellationToken cancellationToken);
 
     protected Topic ValidateTopic(string topicName)
@@ -98,10 +112,12 @@ public abstract class ConsumerBase : IKafkaConsumer
         {
             LoadTopics();
         }
+
         if (Topics.TryGetValue(topicName, out var topic))
         {
             return topic;
         }
+
         throw new Exception($"Topic {topicName} does not exist.");
     }
 

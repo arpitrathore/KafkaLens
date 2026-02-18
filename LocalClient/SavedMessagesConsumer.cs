@@ -90,7 +90,7 @@ public class SavedMessagesConsumer : ConsumerBase
         }
     }
 
-    protected override void GetMessages(string topicName, FetchOptions options, MessageStream messages, CancellationToken cancellationToken)
+    protected override async Task GetMessagesAsync(string topicName, FetchOptions options, MessageStream messages, CancellationToken cancellationToken)
     {
         var topicDir = Path.Combine(clusterDir, topicName);
         if (!Directory.Exists(topicDir))
@@ -120,7 +120,7 @@ public class SavedMessagesConsumer : ConsumerBase
             return fileTimestamps;
         });
 
-        var results = Task.WhenAll(discoveryTasks).GetAwaiter().GetResult();
+        var results = await Task.WhenAll(discoveryTasks);
         allFilesWithTimestamp.AddRange(results.SelectMany(x => x));
 
         IOrderedEnumerable<(string file, int partition, long timestamp)> sortedFiles;
@@ -166,7 +166,7 @@ public class SavedMessagesConsumer : ConsumerBase
             }
         });
 
-        Task.WhenAll(tasks).GetAwaiter().GetResult();
+        await Task.WhenAll(tasks);
 
         foreach (var msg in loadedMessages)
         {
@@ -178,10 +178,10 @@ public class SavedMessagesConsumer : ConsumerBase
         messages.HasMore = false;
     }
 
-    protected override void GetMessages(string topicName, int partition, FetchOptions options, MessageStream stream, CancellationToken cancellationToken)
+    protected override async Task GetMessagesAsync(string topicName, int partition, FetchOptions options, MessageStream stream, CancellationToken cancellationToken)
     {
         using var semaphore = new SemaphoreSlim(10);
-        LoadMessagesForPartitionAsync(topicName, partition, options, stream, semaphore, cancellationToken).GetAwaiter().GetResult();
+        await LoadMessagesForPartitionAsync(topicName, partition, options, stream, semaphore, cancellationToken);
         stream.HasMore = false;
     }
 
@@ -210,7 +210,7 @@ public class SavedMessagesConsumer : ConsumerBase
         }).ToList();
 
         fileOffsets.Sort((a, b) => a.offset.CompareTo(b.offset));
-        
+
         var totalCount = fileOffsets.Count;
         IEnumerable<(string file, long offset)> filesToProcess;
 
@@ -264,11 +264,11 @@ public class SavedMessagesConsumer : ConsumerBase
                     }
                 }
             }
-            
+
             var count = Math.Max(0, endIndex - startIndex);
             filesToProcess = fileOffsets.Skip(startIndex).Take(count).Take(options.Limit);
         }
-        
+
         var tasks = filesToProcess.Select(async s =>
         {
             if (cancellationToken.IsCancellationRequested)

@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Confluent.Kafka;
+using Confluent.Kafka.Admin;
 using KafkaLens.Core.Services;
 using KafkaLens.Shared.Models;
 using NSubstitute;
@@ -33,20 +36,37 @@ public class ConfluentConsumerTests
         protected override IConsumer<byte[], byte[]> CreateConsumer() => _consumerFactory?.Invoke() ?? Substitute.For<IConsumer<byte[], byte[]>>();
         protected override IAdminClient CreateAdminClient(string url) => _nextMockAdminClient ?? Substitute.For<IAdminClient>();
 
-        public void PublicGetMessages(List<TopicPartition> tps, FetchOptions options, MessageStream messages, CancellationToken cancellationToken)
+        public Func<IEnumerable<TopicPartitionOffsetSpec>, Task<ListOffsetsResult>> ListOffsetsHandler { get; set; }
+
+        protected override Task<ListOffsetsResult> ListOffsetsAsync(IEnumerable<TopicPartitionOffsetSpec> topicPartitionOffsets, ListOffsetsOptions options)
+        {
+            return ListOffsetsHandler?.Invoke(topicPartitionOffsets) ?? Task.FromResult(new ListOffsetsResult { ResultInfos = new() });
+        }
+
+        public async Task PublicGetMessages(List<TopicPartition> tps, FetchOptions options, MessageStream messages, CancellationToken cancellationToken)
         {
             // We need to use reflection because the method is private
-            var method = typeof(ConfluentConsumer).GetMethod("GetMessages",
+            var method = typeof(ConfluentConsumer).GetMethod("GetMessagesAsync",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
                 null,
                 new[] { typeof(List<TopicPartition>), typeof(FetchOptions), typeof(MessageStream), typeof(CancellationToken) },
                 null);
-            method.Invoke(this, new object[] { tps, options, messages, cancellationToken });
+            await (Task)method.Invoke(this, new object[] { tps, options, messages, cancellationToken });
+        }
+
+        public async Task<List<WatermarkOffsets>> PublicQueryWatermarkOffsetsAsync(List<TopicPartition> tps, CancellationToken cancellationToken)
+        {
+            var method = typeof(ConfluentConsumer).GetMethod("QueryWatermarkOffsetsAsync",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
+                null,
+                new[] { typeof(List<TopicPartition>), typeof(CancellationToken) },
+                null);
+            return await (Task<List<WatermarkOffsets>>)method.Invoke(this, new object[] { tps, cancellationToken });
         }
     }
 
     [Fact]
-    public void FetchMessages_FromMultiplePartitions_IsNowParallel()
+    public async Task FetchMessages_FromMultiplePartitions_IsNowParallel()
     {
         // Arrange
         var mockAdminClient = Substitute.For<IAdminClient>();
@@ -79,6 +99,18 @@ public class ConfluentConsumerTests
         };
 
         var consumer = TestConfluentConsumer.Create("localhost:9092", consumerFactory, mockAdminClient);
+        consumer.ListOffsetsHandler = specs =>
+        {
+            var isEarliest = specs.First().OffsetSpec.GetType().Name.Contains("Earliest");
+            long offset = isEarliest ? 0 : 100;
+            return Task.FromResult(new ListOffsetsResult
+            {
+                ResultInfos = specs.Select(s => new ListOffsetsResultInfo
+                {
+                    TopicPartitionOffsetError = new TopicPartitionOffsetError(s.TopicPartition, new Offset(offset), new Error(ErrorCode.NoError), null)
+                }).ToList()
+            });
+        };
 
         var topic = "test-topic";
         var tps = new List<TopicPartition>
@@ -92,7 +124,7 @@ public class ConfluentConsumerTests
 
         // Act
         var sw = Stopwatch.StartNew();
-        consumer.PublicGetMessages(tps, options, messages, CancellationToken.None);
+        await consumer.PublicGetMessages(tps, options, messages, CancellationToken.None);
         sw.Stop();
 
         // Assert
@@ -104,5 +136,54 @@ public class ConfluentConsumerTests
         // After optimization, it should take ~500ms.
         // We want to verify it takes < 800ms (to give some margin for thread overhead).
         Assert.True(sw.ElapsedMilliseconds < 2 * consumeDelayMs - 200, $"Expected parallel execution taking ~500ms, but took {sw.ElapsedMilliseconds}ms");
+    }
+
+    [Fact]
+    public async Task QueryWatermarkOffsets_Batch_IsParallel()
+    {
+        // Arrange
+        var mockAdminClient = Substitute.For<IAdminClient>();
+        int queryDelayMs = 200;
+        int callCount = 0;
+
+        var consumer = TestConfluentConsumer.Create("localhost:9092", null, mockAdminClient);
+        consumer.ListOffsetsHandler = async specs =>
+        {
+            Interlocked.Increment(ref callCount);
+            await Task.Delay(queryDelayMs);
+            var result = new ListOffsetsResult
+            {
+                ResultInfos = specs.Select(s => new ListOffsetsResultInfo
+                {
+                    TopicPartitionOffsetError = new TopicPartitionOffsetError(s.TopicPartition, new Offset(100), new Error(ErrorCode.NoError), null)
+                }).ToList()
+            };
+            return result;
+        };
+
+        var topic = "test-topic";
+        int partitionCount = 5;
+        var tps = new List<TopicPartition>();
+        for (int i = 0; i < partitionCount; i++)
+        {
+            tps.Add(new TopicPartition(topic, i));
+        }
+
+        // Act
+        var sw = Stopwatch.StartNew();
+        var results = await consumer.PublicQueryWatermarkOffsetsAsync(tps, CancellationToken.None);
+        sw.Stop();
+
+        // Assert
+        Assert.Equal(partitionCount, results.Count);
+        // We expect exactly 2 calls to ListOffsetsAsync (one for Earliest, one for Latest)
+        Assert.Equal(2, callCount);
+
+        // Since we make TWO calls in parallel, total time should be ~queryDelayMs.
+
+        Console.WriteLine($"Batch query took: {sw.ElapsedMilliseconds}ms (Expected ~{queryDelayMs}ms)");
+
+        // Parallel batching should be much faster than sequential individual queries (which took ~1000ms)
+        Assert.True(sw.ElapsedMilliseconds < partitionCount * queryDelayMs / 2, $"Expected parallel execution taking ~{queryDelayMs}ms, but took {sw.ElapsedMilliseconds}ms");
     }
 }

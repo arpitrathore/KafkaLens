@@ -172,7 +172,7 @@ public class GrpcClient : IKafkaLensClient
                 Log.Error(e, "Error reading stream");
             }
             stream.HasMore = false;
-            
+
             // Log completion when stream actually finishes
             if (partition.HasValue)
             {
