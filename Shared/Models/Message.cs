@@ -9,7 +9,16 @@ public class Message
 {
     public long EpochMillis { get; }
     public Dictionary<string, byte[]> Headers { get; }
-    public string KeyText { get; }
+
+    public string KeyText
+    {
+        get
+        {
+            field ??= GetKeyText(Key);
+            return field;
+        }
+    }
+
     public string ValueText { get; }
     public int Partition { get; set; }
     public long Offset { get; set; }
@@ -20,7 +29,6 @@ public class Message
         Headers = headers;
         Key = key;
         Value = value;
-        KeyText = GetKeyText(key);
         ValueText = Value == null ? "" : Encoding.Default.GetString(Value);
     }
 
@@ -30,19 +38,24 @@ public class Message
         {
             return "";
         }
-        
+
         var stringValue = Encoding.ASCII.GetString(bytes);
-        if (stringValue.ToCharArray().ToList().TrueForAll(IsAscii))
+        bool isAscii = true;
+        foreach (char c in stringValue)
+        {
+            if (!IsAscii(c))
+            {
+                isAscii = false;
+                break;
+            }
+        }
+        if  (isAscii)
         {
             return stringValue;
         }
-        var intValue = GetIntValue(bytes);
-        if (intValue != 0)
-        {
-            return intValue.ToString();
-        }
 
-        return stringValue;
+        var intValue = GetIntValue(bytes);
+        return intValue != 0 ? intValue.ToString() : stringValue;
     }
 
     private static int GetIntValue(byte[] bytes)
