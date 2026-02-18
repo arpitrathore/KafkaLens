@@ -155,12 +155,14 @@ public partial class MainViewModel : ViewModelBase
 
             await clusterFactory.LoadClustersAsync();
 
+#if DEBUG
             if (Clusters is { Count: > 0 })
             {
                 var connected = Clusters.FirstOrDefault(c => c.IsConnected ?? false);
                 if  (connected != null)
                     OpenCluster(connected.Id);
             }
+#endif
         }
         else
         {
@@ -314,7 +316,7 @@ public partial class MainViewModel : ViewModelBase
             IsEnabled = true,
             Icon = statusIcon
         };
-        
+
         c.PropertyChanged += (s, e) =>
         {
             if (e.PropertyName == nameof(ClusterViewModel.StatusColor))

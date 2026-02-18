@@ -106,8 +106,7 @@
             <Setter Property="Foreground" Value="{DynamicResource ComboBoxForeground}" />
         </Style>
 
-        
-        <!-- Subtle GridSplitter -->
+        <!-- Theme-aware GridSplitter styling -->
         <Style Selector="GridSplitter">
             <Setter Property="Background" Value="{DynamicResource ThemeGridSplitterBrush}" />
         </Style>
