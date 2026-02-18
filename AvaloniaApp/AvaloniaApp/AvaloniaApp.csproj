@@ -6,6 +6,7 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
   <ItemGroup>
+    <AvaloniaResource Include="Assets\KafkaLens_logo_cyan_512.png" />
     <AvaloniaResource Include="Themes\**" />
   </ItemGroup>
   <ItemGroup>

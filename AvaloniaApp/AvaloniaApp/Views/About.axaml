@@ -17,25 +17,25 @@
         <StackPanel HorizontalAlignment="Center" Spacing="15">
             <!-- Logo/Icon -->
             <Viewbox Width="64" Height="64">
-                <Image Source="/Assets/KafkaLens_logo.svg" />
+                <Image Source="/Assets/KafkaLens_logo_cyan_512.png" />
             </Viewbox>
-            
+
             <!-- App Title -->
-            <TextBlock FontSize="28" 
-                     FontWeight="SemiBold" 
-                     Text="KafkaLens" 
+            <TextBlock FontSize="28"
+                     FontWeight="SemiBold"
+                     Text="KafkaLens"
                      HorizontalAlignment="Center"
                      Foreground="{DynamicResource ThemeForegroundBrush}"/>
-            
+
             <!-- Version -->
-            <TextBlock Text="{Binding AppVersion}" 
-                     HorizontalAlignment="Center" 
+            <TextBlock Text="{Binding AppVersion}"
+                     HorizontalAlignment="Center"
                      Opacity="0.8"
                      Margin="0,0,0,10"/>
-            
+
             <!-- Links -->
             <StackPanel Spacing="8">
-                <actipro:HyperlinkTextBlock x:Name="ProductUrl" 
+                <actipro:HyperlinkTextBlock x:Name="ProductUrl"
                                         HorizontalAlignment="Center"
                                         Text="Product Page ↗"
                                         Click="Url_OnClick"
@@ -44,8 +44,8 @@
                                         FontSize="14"
                                         Foreground="{DynamicResource ThemeAccentBrush}"
                                         x:CompileBindings="False"/>
-                
-                <actipro:HyperlinkTextBlock x:Name="ProjectUrl" 
+
+                <actipro:HyperlinkTextBlock x:Name="ProjectUrl"
                                         HorizontalAlignment="Center"
                                         Text="GitHub Page ↗"
                                         Click="Url_OnClick"
@@ -55,9 +55,9 @@
                                         Foreground="{DynamicResource ThemeAccentBrush}"
                                         x:CompileBindings="False"/>
             </StackPanel>
-            
+
             <!-- Copyright -->
-            <TextBlock Text="{Binding Copyright}" 
+            <TextBlock Text="{Binding Copyright}"
                      HorizontalAlignment="Center"
                      Margin="0,10,0,0"
                      Opacity="0.7"
