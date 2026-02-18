@@ -54,14 +54,22 @@ public abstract class ConsumerBase : IKafkaConsumer
     public MessageStream GetMessageStream(string topic, FetchOptions options, CancellationToken cancellationToken = default)
     {
         var messages = new MessageStream();
-        Task.Run(() => GetMessages(topic, options, messages, cancellationToken), cancellationToken);
+        Task.Run(() => {
+            Log.Information("Fetching {MessageCount} messages for topic {Topic}", options.Limit, topic);
+            GetMessages(topic, options, messages, cancellationToken);
+            Log.Information("Fetched {MessageCount} messages for topic {Topic}", messages.Messages.Count, topic);
+        }, cancellationToken);
         return messages;
     }
 
     public MessageStream GetMessageStream(string topic, int partition, FetchOptions options, CancellationToken cancellationToken = default)
     {
         var messages = new MessageStream();
-        Task.Run(() => GetMessages(topic, partition, options, messages, cancellationToken), cancellationToken);
+        Task.Run(() => {
+            Log.Information("Fetching {MessageCount} messages for topic {Topic} partition {Partition}", options.Limit, topic, partition);
+            GetMessages(topic, partition, options, messages, cancellationToken);
+            Log.Information("Fetched {MessageCount} messages for topic {Topic} partition {Partition}", messages.Messages.Count, topic, partition);
+        }, cancellationToken);
         return messages;
     }
 
