@@ -27,16 +27,30 @@ fi
 
 TAG="v$VERSION"
 
-# 4. Check if tag already exists
+# 4. Verify installer version matches
+INSTALLER_FILE="Installer/install_windows.iss"
+INSTALLER_VERSION=$(grep -oPm1 "(?<=AppVersion=)[^\\s]+" "$INSTALLER_FILE" | head -1)
+
+if [ -z "$INSTALLER_VERSION" ]; then
+  echo "❌ Could not find AppVersion in $INSTALLER_FILE"
+  exit 1
+fi
+
+if [ "$INSTALLER_VERSION" != "$VERSION" ]; then
+  echo "❌ Version mismatch: Directory.Build.props has $VERSION but $INSTALLER_FILE has $INSTALLER_VERSION"
+  exit 1
+fi
+
+# 5. Check if tag already exists
 if git rev-parse "$TAG" >/dev/null 2>&1; then
   echo "❌ Tag $TAG already exists."
   exit 1
 fi
 
-# 5. Create annotated tag (opens editor for release notes)
+# 6. Create annotated tag (opens editor for release notes)
 git tag -a "$TAG"
 
-# 6. Push tag
+# 7. Push tag
 git push origin "$TAG"
 
 echo "✅ Release $TAG created and pushed."
