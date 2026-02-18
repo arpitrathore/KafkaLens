@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.IO;
+using System.Text;
 using System.Threading;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -244,56 +245,110 @@ public partial class OpenedClusterViewModel : ViewModelBase, ITreeNode
     private async Task SaveAsync(IList<MessageViewModel> messages, bool formatted)
     {
         if (messages.Count == 0)
-        {
             return;
-        }
 
-        foreach (var msg in messages)
-        {
-            await SaveAsync(msg, formatted);
-        }
+        await Task.Run(() => SaveAllInternal(messages, formatted));
     }
 
-    private async Task SaveAsync(MessageViewModel msg, bool formatted)
+    private void SaveAllInternal(IList<MessageViewModel> messages, bool formatted)
     {
-        var dir = Path.Join(SAVE_MESSAGES_DIR, Name, msg.Topic, msg.Partition.ToString());
-        Directory.CreateDirectory(dir);
+        Log.Information($"Saving {messages.Count} messages");
 
-        var fileName = msg.Offset + GetExtension(formatted);
-        var filePath = Path.Join(dir, fileName);
-        // save as binary
+        // Pre-create partition directories
+        var baseDir = Path.Join(SAVE_MESSAGES_DIR, Name);
+
+        var partitionDirs = messages
+            .Select(m => Path.Join(baseDir, m.Topic, m.Partition.ToString()))
+            .Distinct();
+
+        foreach (var dir in partitionDirs)
+            Directory.CreateDirectory(dir);
+
+        var throttler = new SemaphoreSlim(8); // tune 4–12
+
+        var tasks = messages.Select(async msg =>
+        {
+            var dir = Path.Join(baseDir, msg.Topic, msg.Partition.ToString());
+
+            await throttler.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                await SaveSingleAsync(dir, msg, formatted)
+                    .ConfigureAwait(false);
+            }
+            finally
+            {
+                throttler.Release();
+            }
+        });
+
+        Task.WhenAll(tasks)
+            .ContinueWith(t => { Log.Information($"Saved {messages.Count} messages"); })
+            .ConfigureAwait(false);
+    }
+
+
+    private async Task SaveSingleAsync(
+        string dir,
+        MessageViewModel msg,
+        bool formatted)
+    {
+        var filePath = Path.Join(dir, msg.Offset + GetExtension(formatted));
+
         if (!formatted)
         {
-            await Task.Run(() =>
-            {
-                using var fileStream = File.Create(filePath);
-                msg.Message.Serialize(fileStream);
-            });
+            await SaveRaw(msg, filePath);
         }
         else
         {
-            // save as formatted
-            msg.PrettyFormat();
-            var text = new System.Text.StringBuilder();
-            text.AppendLine($"Key: {msg.Key}");
-            text.AppendLine($"Timestamp: {msg.Timestamp}");
-            text.AppendLine($"Partition: {msg.Partition}");
-            text.AppendLine($"Offset: {msg.Offset}");
-            if (msg.Message.Headers.Count > 0)
-            {
-                text.AppendLine("Headers:");
-                foreach (var header in msg.Message.Headers)
-                {
-                    text.AppendLine($"  {header.Key}: {System.Text.Encoding.UTF8.GetString(header.Value)}");
-                }
-            }
-
-            text.AppendLine();
-            text.AppendLine(msg.DisplayText);
-
-            await File.WriteAllTextAsync(filePath, text.ToString());
+            await SaveFormatted(msg, filePath);
         }
     }
+
+    private static async Task SaveFormatted(MessageViewModel msg, string filePath)
+    {
+        msg.PrettyFormat();
+
+        var sb = new StringBuilder(512);
+
+        sb.AppendLine($"Key: {msg.Key}");
+        sb.AppendLine($"Timestamp: {msg.Timestamp}");
+        sb.AppendLine($"Partition: {msg.Partition}");
+        sb.AppendLine($"Offset: {msg.Offset}");
+
+        if (msg.Message.Headers.Count > 0)
+        {
+            sb.AppendLine("Headers:");
+            foreach (var header in msg.Message.Headers)
+            {
+                sb.Append("  ")
+                    .Append(header.Key)
+                    .Append(": ")
+                    .AppendLine(Encoding.UTF8.GetString(header.Value));
+            }
+        }
+
+        sb.AppendLine();
+        sb.AppendLine(msg.DisplayText);
+
+        await File.WriteAllTextAsync(filePath, sb.ToString())
+            .ConfigureAwait(false);
+    }
+
+    private static async Task SaveRaw(MessageViewModel msg, string filePath)
+    {
+        await using var fileStream = new FileStream(
+            filePath,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.None,
+            bufferSize: 81920,   // larger buffer for binary
+            useAsync: true);
+
+        msg.Message.Serialize(fileStream);
+        await fileStream.FlushAsync().ConfigureAwait(false);
+    }
+
 
     private static string GetExtension(bool formatted)
     {
