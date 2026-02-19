@@ -13,19 +13,19 @@ public partial class TopicViewModel: ViewModelBase, IMessageSource
 
     public string Name => topic.Name;
     public bool IsExpandable => true;
-    
+
     [ObservableProperty]
     private bool isSelected;
     [ObservableProperty]
     private bool isExpanded;
 
-    [ObservableProperty] public List<IMessageFormatter> formatters;
+    [ObservableProperty] private List<IMessageFormatter> formatters;
     [ObservableProperty] private string? formatterName;
     [ObservableProperty] private string? keyFormatterName;
 
     public ObservableCollection<MessageViewModel> Messages { get; } = new();
 
-    public ITreeNode.NodeType Type => ITreeNode.NodeType.TOPIC;
+    public ITreeNode.NodeType Type => ITreeNode.NodeType.Topic;
 
     public TopicViewModel(Topic topic, string? formatterName, string? keyFormatterName)
     {

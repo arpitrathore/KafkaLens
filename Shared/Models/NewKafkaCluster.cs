@@ -1,13 +1,7 @@
 ﻿namespace KafkaLens.Shared.Models;
 
-public class NewKafkaCluster
+public class NewKafkaCluster(string name, string address)
 {
-    public NewKafkaCluster(string name, string address)
-    {
-        Name = name;
-        Address = address;
-    }
-
-    public string Name { get; set; }
-    public string Address { get; set; }
+    public string Name { get; set; } = name;
+    public string Address { get; set; } = address;
 }

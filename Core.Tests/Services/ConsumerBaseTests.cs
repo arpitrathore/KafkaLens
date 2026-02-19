@@ -10,46 +10,36 @@ namespace KafkaLens.Core.Tests.Services;
 
 public class ConsumerBaseTests
 {
-    private class TestConsumer : ConsumerBase
+    private class TestConsumer(List<Topic> topics, bool validateResult = true, List<Message>? messages = null)
+        : ConsumerBase
     {
-        private readonly List<Topic> _topics;
-        private readonly bool _validateResult;
-        private readonly List<Message>? _messages;
+        public override bool ValidateConnection() => validateResult;
 
-        public TestConsumer(List<Topic> topics, bool validateResult = true, List<Message>? messages = null)
+        protected override List<Topic> FetchTopics() => topics;
+
+        protected override Task GetMessagesAsync(string topicName, FetchOptions options, MessageStream messages1, CancellationToken cancellationToken)
         {
-            _topics = topics;
-            _validateResult = validateResult;
-            _messages = messages;
-        }
-
-        public override bool ValidateConnection() => _validateResult;
-
-        protected override List<Topic> FetchTopics() => _topics;
-
-        protected override Task GetMessagesAsync(string topicName, FetchOptions options, MessageStream messages, CancellationToken cancellationToken)
-        {
-            if (_messages != null)
+            if (messages != null)
             {
-                foreach (var msg in _messages)
+                foreach (var msg in messages)
                 {
-                    messages.Messages.Add(msg);
+                    messages1.Messages.Add(msg);
                 }
             }
-            messages.HasMore = false;
+            messages1.HasMore = false;
             return Task.CompletedTask;
         }
 
-        protected override Task GetMessagesAsync(string topicName, int partition, FetchOptions options, MessageStream messages, CancellationToken cancellationToken)
+        protected override Task GetMessagesAsync(string topicName, int partition, FetchOptions options, MessageStream messages1, CancellationToken cancellationToken)
         {
-            if (_messages != null)
+            if (messages != null)
             {
-                foreach (var msg in _messages)
+                foreach (var msg in messages)
                 {
-                    messages.Messages.Add(msg);
+                    messages1.Messages.Add(msg);
                 }
             }
-            messages.HasMore = false;
+            messages1.HasMore = false;
             return Task.CompletedTask;
         }
 

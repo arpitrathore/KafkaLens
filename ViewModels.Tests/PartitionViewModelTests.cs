@@ -2,12 +2,7 @@ namespace KafkaLens.ViewModels.Tests;
 
 public class PartitionViewModelTests
 {
-    private readonly IFixture _fixture;
-
-    public PartitionViewModelTests()
-    {
-        _fixture = new Fixture();
-    }
+    private readonly IFixture fixture = new Fixture();
 
     [Fact]
     public void Constructor_ShouldInitializeProperties()
@@ -25,7 +20,7 @@ public class PartitionViewModelTests
         Assert.Equal("Partition 0", viewModel.Name);
         Assert.Equal("test-topic", viewModel.TopicName);
         Assert.False(viewModel.IsExpandable);
-        Assert.Equal(ITreeNode.NodeType.PARTITION, viewModel.Type);
+        Assert.Equal(ITreeNode.NodeType.Partition, viewModel.Type);
         Assert.NotNull(viewModel.Children);
         Assert.NotNull(viewModel.Messages);
         Assert.NotNull(viewModel.LoadMessagesCommand);

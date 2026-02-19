@@ -8,27 +8,20 @@ using KafkaCluster = KafkaLens.Shared.Models.KafkaCluster;
 
 namespace KafkaLens.Core.Services;
 
-public class SharedClient : IKafkaLensClient
+public class SharedClient(
+    IClusterInfoRepository infoRepository,
+    ConsumerFactory consumerFactory)
+    : IKafkaLensClient
 {
     public string Name => "Shared";
     public bool CanEditClusters => false;
     public bool CanSaveMessages => true;
-    private readonly IClusterInfoRepository infoRepository;
-    private readonly ConsumerFactory consumerFactory;
 
     // key = clusterInfo id, value = kafka clusterInfo
     private ReadOnlyDictionary<string, Shared.Entities.ClusterInfo> Clusters => infoRepository.GetAll();
 
     // key = clusterInfo id, value = kafka consumer
     private readonly IDictionary<string, IKafkaConsumer> consumers = new Dictionary<string, IKafkaConsumer>();
-
-    public SharedClient(
-        IClusterInfoRepository infoRepository,
-        ConsumerFactory consumerFactory)
-    {
-        this.infoRepository = infoRepository;
-        this.consumerFactory = consumerFactory;
-    }
 
     #region Create
     public Task<bool> ValidateConnectionAsync(string address)

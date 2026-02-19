@@ -14,12 +14,7 @@ namespace KafkaLens.Clients;
 
 public class GrpcClientTests
 {
-    private readonly GrpcClient client;
-
-    public GrpcClientTests()
-    {
-        client = new GrpcClient("TestClient", "http://localhost:50051");
-    }
+    private readonly GrpcClient client = new("TestClient", "http://localhost:50051");
 
     #region Constructor / Properties
 

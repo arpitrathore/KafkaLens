@@ -10,15 +10,8 @@ using KafkaLens.Shared.Utils;
 
 namespace KafkaLens;
 
-public class SavedMessagesConsumer : ConsumerBase
+public class SavedMessagesConsumer(string clusterDir) : ConsumerBase
 {
-    private readonly string clusterDir;
-
-    public SavedMessagesConsumer(string clusterDir)
-    {
-        this.clusterDir = clusterDir;
-    }
-
     #region Read
     public override bool ValidateConnection()
     {

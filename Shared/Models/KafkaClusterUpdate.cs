@@ -1,13 +1,7 @@
 ﻿namespace KafkaLens.Shared.Models;
 
-public class KafkaClusterUpdate
+public class KafkaClusterUpdate(string name, string address)
 {
-    public KafkaClusterUpdate(string name, string address)
-    {
-        Name = name;
-        Address = address;
-    }
-
-    public string Name { get; set; }
-    public string Address { get; set; }
+    public string Name { get; set; } = name;
+    public string Address { get; set; } = address;
 }

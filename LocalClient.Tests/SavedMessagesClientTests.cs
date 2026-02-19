@@ -9,12 +9,7 @@ namespace KafkaLens.Clients;
 
 public class SavedMessagesClientTests
 {
-    private readonly SavedMessagesClient client;
-
-    public SavedMessagesClientTests()
-    {
-        client = new SavedMessagesClient();
-    }
+    private readonly SavedMessagesClient client = new();
 
     #region Properties
 

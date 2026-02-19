@@ -1,16 +1,9 @@
 ﻿namespace KafkaLens.Shared.Models;
 
-public class KafkaCluster
+public class KafkaCluster(string id, string name, string address)
 {
-    public KafkaCluster(string id, string name, string address)
-    {
-        Id = id;
-        Name = name;
-        Address = address;
-    }
-
-    public string Id { get; private set; }
-    public string Name { get; set; }
-    public string Address { get; set; }
+    public string Id { get; private set; } = id;
+    public string Name { get; set; } = name;
+    public string Address { get; set; } = address;
     public bool IsConnected { get; set; } = false;
 }

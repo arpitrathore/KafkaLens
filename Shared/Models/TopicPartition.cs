@@ -1,14 +1,8 @@
 ﻿namespace KafkaLens.Shared.Models;
 
-public class TopicPartition
+public class TopicPartition(string topic, int partition)
 {
-    public TopicPartition(string topic, int partition)
-    {
-        Topic = topic;
-        Partition = partition;
-    }
+    public string Topic { get; set; } = topic;
 
-    public string Topic { get; set; }
-
-    public int Partition{ get; }
+    public int Partition{ get; } = partition;
 }

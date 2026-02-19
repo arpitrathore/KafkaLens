@@ -4,12 +4,7 @@ using System.Text;
 
 public class MessageViewModelTests
 {
-    private readonly IFixture _fixture;
-
-    public MessageViewModelTests()
-    {
-        _fixture = new Fixture();
-    }
+    private readonly IFixture fixture = new Fixture();
 
     [Fact]
     public void Constructor_ShouldInitializeProperties()

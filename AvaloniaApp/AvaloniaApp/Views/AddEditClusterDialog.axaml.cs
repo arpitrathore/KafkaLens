@@ -11,28 +11,28 @@ namespace AvaloniaApp.Views;
 public partial class AddEditClusterDialog : Window
 {
     public ClusterInfo? Result { get; private set; }
-    private readonly string? _originalName;
-    private readonly string? _originalId;
-    private readonly HashSet<string> _existingNames;
-    private readonly Func<string, Task<bool>>? _connectionValidator;
+    private readonly string? originalName;
+    private readonly string? originalId;
+    private readonly HashSet<string> existingNames;
+    private readonly Func<string, Task<bool>>? connectionValidator;
 
     public AddEditClusterDialog()
     {
         InitializeComponent();
-        _existingNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        existingNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     }
 
     public AddEditClusterDialog(IEnumerable<string> existingNames, Func<string, Task<bool>>? connectionValidator = null) : this()
     {
-        _existingNames = new HashSet<string>(existingNames, StringComparer.OrdinalIgnoreCase);
-        _connectionValidator = connectionValidator;
+        this.existingNames = new HashSet<string>(existingNames, StringComparer.OrdinalIgnoreCase);
+        this.connectionValidator = connectionValidator;
         UpdateTestButton();
     }
 
     public AddEditClusterDialog(ClusterInfo existing, IEnumerable<string> existingNames, Func<string, Task<bool>>? connectionValidator = null) : this(existingNames, connectionValidator)
     {
-        _originalName = existing.Name;
-        _originalId = existing.Id;
+        originalName = existing.Name;
+        originalId = existing.Id;
         NameBox.Text = existing.Name;
         AddressBox.Text = existing.Address;
         Title = "Edit Cluster";
@@ -42,13 +42,13 @@ public partial class AddEditClusterDialog : Window
     {
         if (TestButton != null)
         {
-            TestButton.IsVisible = _connectionValidator != null;
+            TestButton.IsVisible = connectionValidator != null;
         }
     }
 
     private async void TestButton_Click(object? sender, RoutedEventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(AddressBox.Text) || _connectionValidator == null) return;
+        if (string.IsNullOrWhiteSpace(AddressBox.Text) || connectionValidator == null) return;
 
         TestButton.IsEnabled = false;
         StatusTextBlock.Text = "Testing connection...";
@@ -57,7 +57,7 @@ public partial class AddEditClusterDialog : Window
 
         try
         {
-            bool connected = await _connectionValidator(AddressBox.Text.Trim());
+            bool connected = await connectionValidator(AddressBox.Text.Trim());
             if (connected)
             {
                 StatusTextBlock.Text = "Connected successfully.";
@@ -93,13 +93,13 @@ public partial class AddEditClusterDialog : Window
 
         var newName = NameBox.Text.Trim();
         // If editing, the original name is allowed (no change), but duplicates are not.
-        if (!string.Equals(newName, _originalName, StringComparison.OrdinalIgnoreCase) && _existingNames.Contains(newName))
+        if (!string.Equals(newName, originalName, StringComparison.OrdinalIgnoreCase) && existingNames.Contains(newName))
         {
             ErrorTextBlock.Text = $"Cluster with name '{newName}' already exists.";
             return;
         }
 
-        Result = new ClusterInfo(_originalId ?? Guid.NewGuid().ToString(), newName, AddressBox.Text.Trim());
+        Result = new ClusterInfo(originalId ?? Guid.NewGuid().ToString(), newName, AddressBox.Text.Trim());
         Close(Result);
     }
 

@@ -4,18 +4,13 @@ namespace KafkaLens.ViewModels.Tests;
 
 public class SettingsServiceTests : IDisposable
 {
-    private readonly string _tempFilePath;
-
-    public SettingsServiceTests()
-    {
-        _tempFilePath = Path.Combine(Path.GetTempPath(), $"settings_test_{Guid.NewGuid()}.json");
-    }
+    private readonly string tempFilePath = Path.Combine(Path.GetTempPath(), $"settings_test_{Guid.NewGuid()}.json");
 
     public void Dispose()
     {
-        if (File.Exists(_tempFilePath))
+        if (File.Exists(tempFilePath))
         {
-            File.Delete(_tempFilePath);
+            File.Delete(tempFilePath);
         }
     }
 
@@ -23,7 +18,7 @@ public class SettingsServiceTests : IDisposable
     public void GetValue_WhenKeyDoesNotExist_ShouldReturnNull()
     {
         // Arrange
-        var service = new SettingsService(_tempFilePath);
+        var service = new SettingsService(tempFilePath);
 
         // Act
         var result = service.GetValue("nonexistent");
@@ -36,7 +31,7 @@ public class SettingsServiceTests : IDisposable
     public void SetValue_ShouldStoreAndRetrieve()
     {
         // Arrange
-        var service = new SettingsService(_tempFilePath);
+        var service = new SettingsService(tempFilePath);
 
         // Act
         service.SetValue("Theme", "Dark");
@@ -50,7 +45,7 @@ public class SettingsServiceTests : IDisposable
     public void SetValue_ShouldOverwriteExistingValue()
     {
         // Arrange
-        var service = new SettingsService(_tempFilePath);
+        var service = new SettingsService(tempFilePath);
         service.SetValue("Theme", "Dark");
 
         // Act
@@ -65,11 +60,11 @@ public class SettingsServiceTests : IDisposable
     public void SetValue_ShouldPersistToFile()
     {
         // Arrange
-        var service1 = new SettingsService(_tempFilePath);
+        var service1 = new SettingsService(tempFilePath);
         service1.SetValue("Theme", "Dark");
 
         // Act
-        var service2 = new SettingsService(_tempFilePath);
+        var service2 = new SettingsService(tempFilePath);
         var result = service2.GetValue("Theme");
 
         // Assert
@@ -93,7 +88,7 @@ public class SettingsServiceTests : IDisposable
     public void SetValue_MultipleKeys_ShouldStoreAll()
     {
         // Arrange
-        var service = new SettingsService(_tempFilePath);
+        var service = new SettingsService(tempFilePath);
 
         // Act
         service.SetValue("Theme", "Dark");

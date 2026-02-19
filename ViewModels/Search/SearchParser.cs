@@ -3,7 +3,7 @@ using System.Text;
 
 namespace KafkaLens.ViewModels.Search;
 
-public class SearchParser
+public class SearchParser(string input)
 {
     private enum TokenType
     {
@@ -18,14 +18,8 @@ public class SearchParser
 
     private record Token(TokenType Type, string Value = "");
 
-    private readonly string input;
-    private int position;
-
-    public SearchParser(string input)
-    {
-        this.input = input ?? "";
-        this.position = 0;
-    }
+    private readonly string input = input ?? "";
+    private int position = 0;
 
     public static IFilterExpression Parse(string input, bool defaultMatch = true)
     {

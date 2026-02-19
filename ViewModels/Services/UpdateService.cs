@@ -14,22 +14,22 @@ namespace KafkaLens.ViewModels.Services;
 
 public class UpdateService : IUpdateService
 {
-    private const string RepoOwner = "fatichar";
-    private const string RepoName = "KafkaLens";
-    private readonly HttpClient _httpClient;
+    private const string REPO_OWNER = "fatichar";
+    private const string REPO_NAME = "KafkaLens";
+    private readonly HttpClient httpClient;
 
     public UpdateService()
     {
-        _httpClient = new HttpClient();
-        _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("KafkaLens", "1.0"));
+        httpClient = new HttpClient();
+        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("KafkaLens", "1.0"));
     }
 
     public async Task<UpdateCheckResult> CheckForUpdateAsync()
     {
         try
         {
-            var url = $"https://api.github.com/repos/{RepoOwner}/{RepoName}/releases/latest";
-            var response = await _httpClient.GetStringAsync(url);
+            var url = $"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest";
+            var response = await httpClient.GetStringAsync(url);
             using var doc = JsonDocument.Parse(response);
             var root = doc.RootElement;
 

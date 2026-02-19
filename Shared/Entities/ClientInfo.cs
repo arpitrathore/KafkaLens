@@ -3,29 +3,21 @@ using System.Text.Json.Serialization;
 
 namespace KafkaLens.Clients.Entities;
 
-public class ClientInfo
+public class ClientInfo(string id, string name, string address, string protocol)
 {
-    public ClientInfo(string id, string name, string address, string protocol)
-    {
-        Id = id;
-        Name = name;
-        Address = address;
-        Protocol = protocol;
-    }
-
     [Required]
     [JsonPropertyName("id")]
-    public string Id { get; set; }
-    
+    public string Id { get; set; } = id;
+
     [Required]
     [JsonPropertyName("name")]
-    public string Name { get; set; }
-    
+    public string Name { get; set; } = name;
+
     [Required]
     [JsonPropertyName("protocol")]
-    public string Protocol { get; set; }
-    
+    public string Protocol { get; set; } = protocol;
+
     [Required]
     [JsonPropertyName("address")]
-    public string Address { get; set; }
+    public string Address { get; set; } = address;
 }

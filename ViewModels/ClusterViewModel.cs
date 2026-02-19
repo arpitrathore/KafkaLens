@@ -14,10 +14,10 @@ public sealed partial class ClusterViewModel: ConnectionViewModelBase
     public ObservableCollection<Topic> Topics { get; } = new();
 
     public string Id => cluster.Id;
-    
+
     [ObservableProperty]
     private string name;
-    
+
     [ObservableProperty]
     private string address;
 
@@ -34,7 +34,7 @@ public sealed partial class ClusterViewModel: ConnectionViewModelBase
 
     public async Task CheckConnectionAsync()
     {
-        IsConnected = await Client.ValidateConnectionAsync(address);
+        IsConnected = await Client.ValidateConnectionAsync(Address);
     }
 
     private async Task LoadTopicsAsync()

@@ -10,16 +10,16 @@ namespace KafkaLens.ViewModels.Tests;
 
 public class OpenedClusterViewModelBusinessLogicTests
 {
-    private readonly IKafkaLensClient _mockClient;
-    private readonly ISettingsService _settingsService;
-    private readonly ITopicSettingsService _topicSettingsService;
+    private readonly IKafkaLensClient mockClient;
+    private readonly ISettingsService settingsService;
+    private readonly ITopicSettingsService topicSettingsService;
 
     public OpenedClusterViewModelBusinessLogicTests()
     {
-        _mockClient = Substitute.For<IKafkaLensClient>();
-        _settingsService = Substitute.For<ISettingsService>();
-        _topicSettingsService = Substitute.For<ITopicSettingsService>();
-        _topicSettingsService.GetSettings(Arg.Any<string>(), Arg.Any<string>())
+        mockClient = Substitute.For<IKafkaLensClient>();
+        settingsService = Substitute.For<ISettingsService>();
+        topicSettingsService = Substitute.For<ITopicSettingsService>();
+        topicSettingsService.GetSettings(Arg.Any<string>(), Arg.Any<string>())
             .Returns(new TopicSettings { KeyFormatter = "Auto", ValueFormatter = "Auto" });
         OpenedClusterViewModel.FormatterFactory = FormatterFactory.Instance;
     }
@@ -27,8 +27,8 @@ public class OpenedClusterViewModelBusinessLogicTests
     private OpenedClusterViewModel CreateViewModel(string clusterId = "c1", string clusterName = "TestCluster")
     {
         var cluster = new KafkaCluster(clusterId, clusterName, "localhost:9092");
-        var clusterVm = new ClusterViewModel(cluster, _mockClient);
-        return new OpenedClusterViewModel(_settingsService, _topicSettingsService, clusterVm, clusterName);
+        var clusterVm = new ClusterViewModel(cluster, mockClient);
+        return new OpenedClusterViewModel(settingsService, topicSettingsService, clusterVm, clusterName);
     }
 
     #region LoadTopicsAsync
@@ -43,7 +43,7 @@ public class OpenedClusterViewModelBusinessLogicTests
             new("topic-1", new List<Partition> { new(0) }),
             new("topic-2", new List<Partition> { new(0), new(1) })
         };
-        _mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
+        mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
 
         // Act
         await vm.LoadTopicsAsync();
@@ -61,8 +61,8 @@ public class OpenedClusterViewModelBusinessLogicTests
         // Arrange
         var vm = CreateViewModel();
         var topics = new List<Topic> { new("my-topic", new List<Partition>()) };
-        _mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
-        _topicSettingsService.GetSettings("c1", "my-topic")
+        mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
+        topicSettingsService.GetSettings("c1", "my-topic")
             .Returns(new TopicSettings { KeyFormatter = "Text", ValueFormatter = "Json" });
 
         // Act
@@ -79,7 +79,7 @@ public class OpenedClusterViewModelBusinessLogicTests
     {
         // Arrange
         var vm = CreateViewModel();
-        _mockClient.GetTopicsAsync("c1")
+        mockClient.GetTopicsAsync("c1")
             .Returns(Task.FromException<IList<Topic>>(new Exception("Connection failed")));
 
         // Act & Assert — should not throw
@@ -93,7 +93,7 @@ public class OpenedClusterViewModelBusinessLogicTests
         // Arrange
         var vm = CreateViewModel();
         var firstTopics = new List<Topic> { new("topic-1", new List<Partition>()) };
-        _mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(firstTopics));
+        mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(firstTopics));
 
         // Act — first load
         await vm.LoadTopicsAsync();
@@ -102,7 +102,7 @@ public class OpenedClusterViewModelBusinessLogicTests
 
         // Arrange — change mock return for second call
         var secondTopics = new List<Topic> { new("topic-a", new List<Partition>()), new("topic-b", new List<Partition>()) };
-        _mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(secondTopics));
+        mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(secondTopics));
 
         // Act — second load
         await vm.LoadTopicsAsync();
@@ -128,7 +128,7 @@ public class OpenedClusterViewModelBusinessLogicTests
             new("users", new List<Partition>()),
             new("events", new List<Partition>())
         };
-        _mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
+        mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
         await vm.LoadTopicsAsync();
 
         // Act
@@ -150,7 +150,7 @@ public class OpenedClusterViewModelBusinessLogicTests
             new("orders-updated", new List<Partition>()),
             new("users-created", new List<Partition>())
         };
-        _mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
+        mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
         await vm.LoadTopicsAsync();
 
         // Act
@@ -170,7 +170,7 @@ public class OpenedClusterViewModelBusinessLogicTests
             new("OrderEvents", new List<Partition>()),
             new("UserEvents", new List<Partition>())
         };
-        _mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
+        mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
         await vm.LoadTopicsAsync();
 
         // Act
@@ -191,21 +191,21 @@ public class OpenedClusterViewModelBusinessLogicTests
         // Arrange
         var vm = CreateViewModel();
         var topics = new List<Topic> { new("test-topic", new List<Partition> { new(0) }) };
-        _mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
+        mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
         await vm.LoadTopicsAsync();
         vm.IsCurrent = true;
 
         var messageStream = new MessageStream();
-        _mockClient.GetMessageStream("c1", "test-topic", Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>())
+        mockClient.GetMessageStream("c1", "test-topic", Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>())
             .Returns(messageStream);
 
         // Act
         vm.SelectedNode = vm.Topics[0];
 
         // Assert
-        Assert.Equal(ITreeNode.NodeType.TOPIC, vm.SelectedNodeType);
+        Assert.Equal(ITreeNode.NodeType.Topic, vm.SelectedNodeType);
         Assert.True(vm.IsFetchOptionsEnabled);
-        _mockClient.Received(1).GetMessageStream("c1", "test-topic", Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>());
+        mockClient.Received(1).GetMessageStream("c1", "test-topic", Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>());
     }
 
     [AvaloniaFact]
@@ -214,12 +214,12 @@ public class OpenedClusterViewModelBusinessLogicTests
         // Arrange
         var vm = CreateViewModel();
         var topics = new List<Topic> { new("test-topic", new List<Partition> { new(0), new(1) }) };
-        _mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
+        mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
         await vm.LoadTopicsAsync();
         vm.IsCurrent = true;
 
         var messageStream = new MessageStream();
-        _mockClient.GetMessageStream("c1", "test-topic", 0, Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>())
+        mockClient.GetMessageStream("c1", "test-topic", 0, Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>())
             .Returns(messageStream);
 
         var partition = vm.Topics[0].Partitions[0];
@@ -228,8 +228,8 @@ public class OpenedClusterViewModelBusinessLogicTests
         vm.SelectedNode = partition;
 
         // Assert
-        Assert.Equal(ITreeNode.NodeType.PARTITION, vm.SelectedNodeType);
-        _mockClient.Received(1).GetMessageStream("c1", "test-topic", 0, Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>());
+        Assert.Equal(ITreeNode.NodeType.Partition, vm.SelectedNodeType);
+        mockClient.Received(1).GetMessageStream("c1", "test-topic", 0, Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>());
     }
 
     [AvaloniaFact]
@@ -238,7 +238,7 @@ public class OpenedClusterViewModelBusinessLogicTests
         // Arrange
         var vm = CreateViewModel();
         var topics = new List<Topic> { new("test-topic", new List<Partition> { new(0) }) };
-        _mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
+        mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
         await vm.LoadTopicsAsync();
         vm.IsCurrent = false;
 
@@ -246,7 +246,7 @@ public class OpenedClusterViewModelBusinessLogicTests
         vm.SelectedNode = vm.Topics[0];
 
         // Assert — FetchMessages should not be called because IsCurrent is false
-        _mockClient.DidNotReceive().GetMessageStream(
+        mockClient.DidNotReceive().GetMessageStream(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>());
     }
 
@@ -256,10 +256,10 @@ public class OpenedClusterViewModelBusinessLogicTests
         // Arrange
         var vm = CreateViewModel();
         var topics = new List<Topic> { new("test-topic", new List<Partition> { new(0) }) };
-        _mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
+        mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
         await vm.LoadTopicsAsync();
         vm.IsCurrent = true;
-        _mockClient.GetMessageStream("c1", "test-topic", Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>())
+        mockClient.GetMessageStream("c1", "test-topic", Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>())
             .Returns(new MessageStream());
 
         // Act
@@ -278,10 +278,10 @@ public class OpenedClusterViewModelBusinessLogicTests
         // Arrange
         var vm = CreateViewModel();
         var topics = new List<Topic> { new("test-topic", new List<Partition> { new(0) }) };
-        _mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
+        mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
         await vm.LoadTopicsAsync();
         vm.IsCurrent = true;
-        _mockClient.GetMessageStream("c1", "test-topic", 0, Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>())
+        mockClient.GetMessageStream("c1", "test-topic", 0, Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>())
             .Returns(new MessageStream());
 
         // Act
@@ -300,7 +300,7 @@ public class OpenedClusterViewModelBusinessLogicTests
         // Arrange
         var vm = CreateViewModel();
         var topics = new List<Topic> { new("test-topic", new List<Partition> { new(0) }) };
-        _mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
+        mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
         await vm.LoadTopicsAsync();
         vm.IsCurrent = true;
 
@@ -309,7 +309,7 @@ public class OpenedClusterViewModelBusinessLogicTests
         vm.CurrentMessages.Add(new MessageViewModel(msg, "Text", "Text"));
         Assert.Single(vm.CurrentMessages.Messages);
 
-        _mockClient.GetMessageStream("c1", "test-topic", Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>())
+        mockClient.GetMessageStream("c1", "test-topic", Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>())
             .Returns(new MessageStream());
 
         // Act
@@ -416,10 +416,10 @@ public class OpenedClusterViewModelBusinessLogicTests
         // Arrange
         var vm = CreateViewModel();
         var topics = new List<Topic> { new("test-topic", new List<Partition> { new(0) }) };
-        _mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
+        mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
         await vm.LoadTopicsAsync();
         vm.IsCurrent = true;
-        _mockClient.GetMessageStream("c1", "test-topic", Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>())
+        mockClient.GetMessageStream("c1", "test-topic", Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>())
             .Returns(new MessageStream());
 
         vm.SelectedNode = vm.Topics[0];
@@ -430,7 +430,7 @@ public class OpenedClusterViewModelBusinessLogicTests
         await vm.SaveTopicSettingsAsync();
 
         // Assert
-        _topicSettingsService.Received(1).SetSettings("c1", "test-topic",
+        topicSettingsService.Received(1).SetSettings("c1", "test-topic",
             Arg.Is<TopicSettings>(s => s.ValueFormatter == "Text" && s.KeyFormatter == "Number"),
             false);
     }
@@ -441,10 +441,10 @@ public class OpenedClusterViewModelBusinessLogicTests
         // Arrange
         var vm = CreateViewModel();
         var topics = new List<Topic> { new("test-topic", new List<Partition> { new(0) }) };
-        _mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
+        mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
         await vm.LoadTopicsAsync();
         vm.IsCurrent = true;
-        _mockClient.GetMessageStream("c1", "test-topic", Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>())
+        mockClient.GetMessageStream("c1", "test-topic", Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>())
             .Returns(new MessageStream());
 
         vm.SelectedNode = vm.Topics[0];
@@ -456,7 +456,7 @@ public class OpenedClusterViewModelBusinessLogicTests
         await vm.SaveTopicSettingsAsync();
 
         // Assert
-        _topicSettingsService.Received(1).SetSettings("c1", "test-topic",
+        topicSettingsService.Received(1).SetSettings("c1", "test-topic",
             Arg.Any<TopicSettings>(), true);
     }
 
@@ -466,10 +466,10 @@ public class OpenedClusterViewModelBusinessLogicTests
         // Arrange
         var vm = CreateViewModel();
         var topics = new List<Topic> { new("test-topic", new List<Partition> { new(0) }) };
-        _mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
+        mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
         await vm.LoadTopicsAsync();
         vm.IsCurrent = true;
-        _mockClient.GetMessageStream("c1", "test-topic", Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>())
+        mockClient.GetMessageStream("c1", "test-topic", Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>())
             .Returns(new MessageStream());
 
         vm.SelectedNode = vm.Topics[0];
@@ -500,7 +500,7 @@ public class OpenedClusterViewModelBusinessLogicTests
 
         // Act & Assert — should not throw
         await vm.SaveTopicSettingsAsync();
-        _topicSettingsService.DidNotReceive().SetSettings(
+        topicSettingsService.DidNotReceive().SetSettings(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<TopicSettings>(), Arg.Any<bool>());
     }
 
@@ -514,12 +514,12 @@ public class OpenedClusterViewModelBusinessLogicTests
         // Arrange
         var vm = CreateViewModel();
         var topics = new List<Topic> { new("test-topic", new List<Partition> { new(0) }) };
-        _mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
+        mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
         await vm.LoadTopicsAsync();
         vm.IsCurrent = true;
 
         var messageStream = new MessageStream();
-        _mockClient.GetMessageStream("c1", "test-topic", Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>())
+        mockClient.GetMessageStream("c1", "test-topic", Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>())
             .Returns(messageStream);
 
         // Set a non-Auto formatter so OnMessagesChanged doesn't try to guess
@@ -550,14 +550,14 @@ public class OpenedClusterViewModelBusinessLogicTests
     {
         // Arrange
         var cluster = new KafkaCluster("c1", "TestCluster", "localhost:9092");
-        var clusterVm = new ClusterViewModel(cluster, _mockClient);
-        var vm = new OpenedClusterViewModel(_settingsService, _topicSettingsService, clusterVm, "TestCluster");
+        var clusterVm = new ClusterViewModel(cluster, mockClient);
+        var vm = new OpenedClusterViewModel(settingsService, topicSettingsService, clusterVm, "TestCluster");
 
         var topics = new List<Topic> { new("auto-loaded-topic", new List<Partition>()) };
-        _mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
+        mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
 
         // Act — simulate cluster becoming connected
-        _mockClient.ValidateConnectionAsync("localhost:9092").Returns(Task.FromResult(true));
+        mockClient.ValidateConnectionAsync("localhost:9092").Returns(Task.FromResult(true));
         await clusterVm.CheckConnectionAsync();
 
         // Allow async LoadTopicsAsync to complete

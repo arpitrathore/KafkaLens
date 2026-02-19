@@ -6,10 +6,10 @@ namespace KafkaLens.ViewModels;
 
 public sealed partial class MessageViewModel : ViewModelBase
 {
-    const int MaxSummaryLen = 100;
+    const int MAX_SUMMARY_LEN = 100;
 
     private readonly Message message;
-    
+
     public Message Message => message;
     private IMessageFormatter formatter = null!;
     private IMessageFormatter keyFormatter = null!;
@@ -41,13 +41,13 @@ public sealed partial class MessageViewModel : ViewModelBase
             SetProperty(ref field, value);
             formatter = FormatterFactory.Instance.GetFormatter(value);
             DecodedMessage = formatter.Format(message.Value ?? Array.Empty<byte>(), false) ?? message.ValueText;
-            var limit = Math.Min(MaxSummaryLen, DecodedMessage.Length);
+            var limit = Math.Min(MAX_SUMMARY_LEN, DecodedMessage.Length);
             Summary = DecodedMessage[..limit].ReplaceLineEndings(" ")
                       + (limit < DecodedMessage.Length ? "..." : "");
 
             UpdateText();
         }
-    } = null!;
+    }
 
     public string KeyFormatterName
     {
@@ -60,7 +60,7 @@ public sealed partial class MessageViewModel : ViewModelBase
             keyFormatter = FormatterFactory.Instance.GetFormatter(value);
             Key = keyFormatter.Format(message.Key ?? Array.Empty<byte>(), false) ?? message.KeyText;
         }
-    } = null!;
+    }
 
     public MessageViewModel(Message message, string formatterName, string keyFormatterName)
     {

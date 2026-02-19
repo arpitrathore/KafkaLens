@@ -10,54 +10,40 @@ namespace KafkaLens.ViewModels.Tests;
 
 public class MainViewModelBusinessLogicTests
 {
-    private readonly IClusterFactory _clusterFactory;
-    private readonly ISettingsService _settingsService;
-    private readonly ITopicSettingsService _topicSettingsService;
-    private readonly ISavedMessagesClient _savedMessagesClient;
-    private readonly IClusterInfoRepository _clusterInfoRepository;
-    private readonly IClientInfoRepository _clientInfoRepository;
-    private readonly IClientFactory _clientFactory;
-    private readonly IUpdateService _updateService;
-    private readonly IKafkaLensClient _mockClient;
-    private readonly AppConfig _appConfig;
-
-    public MainViewModelBusinessLogicTests()
-    {
-        _clusterFactory = Substitute.For<IClusterFactory>();
-        _settingsService = Substitute.For<ISettingsService>();
-        _topicSettingsService = Substitute.For<ITopicSettingsService>();
-        _savedMessagesClient = Substitute.For<ISavedMessagesClient>();
-        _clusterInfoRepository = Substitute.For<IClusterInfoRepository>();
-        _clientInfoRepository = Substitute.For<IClientInfoRepository>();
-        _clientFactory = Substitute.For<IClientFactory>();
-        _updateService = Substitute.For<IUpdateService>();
-        _mockClient = Substitute.For<IKafkaLensClient>();
-        _appConfig = new AppConfig { Title = "Test", ClusterRefreshIntervalSeconds = 100 };
-    }
+    private readonly IClusterFactory clusterFactory = Substitute.For<IClusterFactory>();
+    private readonly ISettingsService settingsService = Substitute.For<ISettingsService>();
+    private readonly ITopicSettingsService topicSettingsService = Substitute.For<ITopicSettingsService>();
+    private readonly ISavedMessagesClient savedMessagesClient = Substitute.For<ISavedMessagesClient>();
+    private readonly IClusterInfoRepository clusterInfoRepository = Substitute.For<IClusterInfoRepository>();
+    private readonly IClientInfoRepository clientInfoRepository = Substitute.For<IClientInfoRepository>();
+    private readonly IClientFactory clientFactory = Substitute.For<IClientFactory>();
+    private readonly IUpdateService updateService = Substitute.For<IUpdateService>();
+    private readonly IKafkaLensClient mockClient = Substitute.For<IKafkaLensClient>();
+    private readonly AppConfig appConfig = new() { Title = "Test", ClusterRefreshIntervalSeconds = 100 };
 
     private MainViewModel CreateViewModel(ObservableCollection<ClusterViewModel>? clusters = null)
     {
         clusters ??= new ObservableCollection<ClusterViewModel>();
-        _clusterFactory.GetAllClusters().Returns(clusters);
-        _clusterFactory.LoadClustersAsync().Returns(Task.FromResult(clusters));
+        clusterFactory.GetAllClusters().Returns(clusters);
+        clusterFactory.LoadClustersAsync().Returns(Task.FromResult(clusters));
 
         return new MainViewModel(
-            _appConfig,
-            _clusterFactory,
-            _settingsService,
-            _topicSettingsService,
-            _savedMessagesClient,
-            _clusterInfoRepository,
-            _clientInfoRepository,
-            _clientFactory,
-            _updateService,
+            appConfig,
+            clusterFactory,
+            settingsService,
+            topicSettingsService,
+            savedMessagesClient,
+            clusterInfoRepository,
+            clientInfoRepository,
+            clientFactory,
+            updateService,
             FormatterFactory.Instance);
     }
 
     private (ClusterViewModel vm, KafkaCluster model) CreateClusterVmWithModel(string id = "c1", string name = "Cluster1", string address = "localhost:9092")
     {
         var cluster = new KafkaCluster(id, name, address);
-        return (new ClusterViewModel(cluster, _mockClient), cluster);
+        return (new ClusterViewModel(cluster, mockClient), cluster);
     }
 
     private ClusterViewModel CreateClusterVm(string id = "c1", string name = "Cluster1", string address = "localhost:9092")
@@ -82,7 +68,7 @@ public class MainViewModelBusinessLogicTests
         Assert.Equal(2, vm.Clusters.Count);
         Assert.NotNull(vm.MenuItems);
         // OnActivated() in constructor also calls LoadClusters, so at least 1 call expected
-        await _clusterFactory.Received().LoadClustersAsync();
+        await clusterFactory.Received().LoadClustersAsync();
     }
 
     [AvaloniaFact]
@@ -97,9 +83,9 @@ public class MainViewModelBusinessLogicTests
         await vm.LoadClusters();
 
         // Assert — GetAllClusters called once (first call only), LoadClustersAsync called multiple times
-        _clusterFactory.Received(1).GetAllClusters();
+        clusterFactory.Received(1).GetAllClusters();
         // OnActivated() in constructor also calls LoadClusters, so total is 3+
-        await _clusterFactory.Received().LoadClustersAsync();
+        await clusterFactory.Received().LoadClustersAsync();
     }
 
     [AvaloniaFact]
@@ -116,8 +102,9 @@ public class MainViewModelBusinessLogicTests
         Assert.Single(vm.OpenedClusters);
         Assert.Equal("OriginalName", vm.OpenedClusters[0].Name);
 
-        // Rename the cluster via the underlying model
-        model.Name = "RenamedCluster";
+        // Create a new version of the cluster with the same ID but different name
+        var updatedCluster = CreateClusterVm("c1", "RenamedCluster");
+        clusters[0] = updatedCluster;
 
         // Act — second LoadClusters should update opened cluster names
         await vm.LoadClusters();
@@ -286,7 +273,7 @@ public class MainViewModelBusinessLogicTests
     public void Constructor_ShouldSetThemeFromSettings()
     {
         // Arrange
-        _settingsService.GetValue("Theme").Returns("Dark");
+        settingsService.GetValue("Theme").Returns("Dark");
 
         // Act
         var vm = CreateViewModel();
@@ -299,7 +286,7 @@ public class MainViewModelBusinessLogicTests
     public void Constructor_WhenNoThemeSetting_ShouldDefaultToSystem()
     {
         // Arrange
-        _settingsService.GetValue("Theme").Returns((string?)null);
+        settingsService.GetValue("Theme").Returns((string?)null);
 
         // Act
         var vm = CreateViewModel();
@@ -318,6 +305,6 @@ public class MainViewModelBusinessLogicTests
         vm.CurrentTheme = "Dark";
 
         // Assert
-        _settingsService.Received(1).SetValue("Theme", "Dark");
+        settingsService.Received(1).SetValue("Theme", "Dark");
     }
 }

@@ -21,7 +21,7 @@ public partial class PartitionViewModel: ViewModelBase, IMessageSource {
     private bool isExpanded;
     public ObservableCollection<ITreeNode> Children { get; } = new();
 
-    public ITreeNode.NodeType Type => ITreeNode.NodeType.PARTITION;
+    public ITreeNode.NodeType Type => ITreeNode.NodeType.Partition;
 
     public PartitionViewModel(TopicViewModel topic, Partition partition) {
         LoadMessagesCommand = new AsyncRelayCommand(LoadMessagesAsync);

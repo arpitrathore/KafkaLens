@@ -3,28 +3,20 @@ using KafkaLens.Clients.Entities;
 
 namespace KafkaLens.ViewModels;
 
-public partial class ClientInfoViewModel : ConnectionViewModelBase
+public partial class ClientInfoViewModel(ClientInfo info) : ConnectionViewModelBase
 {
-    public ClientInfo Info { get; private set; }
-
-    public ClientInfoViewModel(ClientInfo info)
-    {
-        Info = info;
-        name = info.Name;
-        address = info.Address;
-        protocol = info.Protocol;
-    }
+    public ClientInfo Info { get; private set; } = info;
 
     [ObservableProperty]
-    private string name;
+    private string name = info.Name;
     
     [ObservableProperty]
-    private string address;
+    private string address = info.Address;
     
     public string Id => Info.Id;
     
     [ObservableProperty]
-    private string protocol;
+    private string protocol = info.Protocol;
     
     public void UpdateInfo(ClientInfo info)
     {

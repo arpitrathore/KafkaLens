@@ -6,10 +6,10 @@ public interface ITreeNode
 {
     enum NodeType
     {
-        CLUSTER,
-        TOPIC,
-        PARTITION,
-        NONE
+        Cluster,
+        Topic,
+        Partition,
+        None
     }
     string Name { get; }
     NodeType Type { get; }

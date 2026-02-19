@@ -2,12 +2,7 @@ namespace KafkaLens.ViewModels.Tests;
 
 public class TopicViewModelTests
 {
-    private readonly IFixture _fixture;
-
-    public TopicViewModelTests()
-    {
-        _fixture = new Fixture();
-    }
+    private readonly IFixture fixture = new Fixture();
 
     [Fact]
     public void Constructor_ShouldInitializeProperties()
@@ -29,7 +24,7 @@ public class TopicViewModelTests
         Assert.Equal("Text", viewModel.KeyFormatterName);
         Assert.Equal(2, viewModel.Partitions.Count);
         Assert.Equal(2, viewModel.Children.Count);
-        Assert.Equal(ITreeNode.NodeType.TOPIC, viewModel.Type);
+        Assert.Equal(ITreeNode.NodeType.Topic, viewModel.Type);
         Assert.NotNull(viewModel.Messages);
         Assert.NotNull(viewModel.Formatters);
     }

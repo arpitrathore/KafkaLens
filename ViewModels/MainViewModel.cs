@@ -498,11 +498,13 @@ public partial class MainViewModel : ViewModelBase
     internal void CloseTab(OpenedClusterViewModel openedCluster)
     {
         Log.Information("Closing tab: {TabName}", openedCluster.Name);
-        var openedList = openedClustersMap[openedCluster.ClusterId];
-        openedList.Remove(openedCluster);
-        if (openedList.Count == 0)
+        if (openedClustersMap.TryGetValue(openedCluster.ClusterId, out var openedList))
         {
-            openedClustersMap.Remove(openedCluster.ClusterId);
+            openedList.Remove(openedCluster);
+            if (openedList.Count == 0)
+            {
+                openedClustersMap.Remove(openedCluster.ClusterId);
+            }
         }
 
         OpenedClusters.Remove(openedCluster);
@@ -542,6 +544,10 @@ public partial class MainViewModel : ViewModelBase
 
     private void PerformUpdate(UpdateCheckResult result)
     {
+        if (!ValidateResult(result))
+        {
+            return;
+        }
         if (!UpdateService.IsInstallDirectoryWritable())
         {
             Log.Warning("Install directory is not writable. Cannot perform auto-update.");
@@ -579,7 +585,7 @@ public partial class MainViewModel : ViewModelBase
         }
 
         var currentPid = Environment.ProcessId;
-        var executablePath = Process.GetCurrentProcess().MainModule?.FileName;
+        var executablePath = Process.GetCurrentProcess().MainModule?.FileName!;
 
         var processStartInfo = new ProcessStartInfo
         {
@@ -590,7 +596,7 @@ public partial class MainViewModel : ViewModelBase
         processStartInfo.ArgumentList.Add("--pid");
         processStartInfo.ArgumentList.Add(currentPid.ToString());
         processStartInfo.ArgumentList.Add("--url");
-        processStartInfo.ArgumentList.Add(result.DownloadUrl);
+        processStartInfo.ArgumentList.Add(result.DownloadUrl!);
         if (result.ChecksumUrl != null)
         {
             processStartInfo.ArgumentList.Add("--checksum-url");
@@ -598,7 +604,7 @@ public partial class MainViewModel : ViewModelBase
         }
 
         processStartInfo.ArgumentList.Add("--asset-name");
-        processStartInfo.ArgumentList.Add(result.AssetName);
+        processStartInfo.ArgumentList.Add(result.AssetName!);
         processStartInfo.ArgumentList.Add("--dest");
         processStartInfo.ArgumentList.Add(appDir);
         processStartInfo.ArgumentList.Add("--executable");
@@ -630,6 +636,22 @@ public partial class MainViewModel : ViewModelBase
             Log.Error("Stack trace: {StackTrace}", ex.StackTrace);
             throw;
         }
+    }
+
+    private bool ValidateResult(UpdateCheckResult result)
+    {
+        if (result.DownloadUrl == null)
+        {
+            Log.Error("Download URL is not set");
+            return false;
+        }
+        if (result.AssetName == null)
+        {
+            Log.Error("Asset name is not set");
+            return false;
+        }
+
+        return true;
     }
 
     internal void OpenCluster(ClusterViewModel clusterViewModel)

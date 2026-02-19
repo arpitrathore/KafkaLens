@@ -9,25 +9,25 @@ namespace AvaloniaApp.Views;
 public partial class AddEditClientDialog : Window
 {
     public ClientInfo? Result { get; private set; }
-    private readonly string? _originalName;
-    private readonly string? _originalId;
-    private readonly HashSet<string> _existingNames;
+    private readonly string? originalName;
+    private readonly string? originalId;
+    private readonly HashSet<string> existingNames;
 
     public AddEditClientDialog()
     {
         InitializeComponent();
-        _existingNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        existingNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     }
 
     public AddEditClientDialog(IEnumerable<string> existingNames) : this()
     {
-        _existingNames = new HashSet<string>(existingNames, StringComparer.OrdinalIgnoreCase);
+        this.existingNames = new HashSet<string>(existingNames, StringComparer.OrdinalIgnoreCase);
     }
 
     public AddEditClientDialog(ClientInfo existing, IEnumerable<string> existingNames) : this(existingNames)
     {
-        _originalName = existing.Name;
-        _originalId = existing.Id;
+        originalName = existing.Name;
+        originalId = existing.Id;
         NameBox.Text = existing.Name;
         AddressBox.Text = existing.Address;
         Title = "Edit Client";
@@ -54,7 +54,7 @@ public partial class AddEditClientDialog : Window
         }
 
         var newName = NameBox.Text.Trim();
-        if (!string.Equals(newName, _originalName, StringComparison.OrdinalIgnoreCase) && _existingNames.Contains(newName))
+        if (!string.Equals(newName, originalName, StringComparison.OrdinalIgnoreCase) && existingNames.Contains(newName))
         {
             ErrorTextBlock.Text = $"Client with name '{newName}' already exists.";
             return;
@@ -63,7 +63,7 @@ public partial class AddEditClientDialog : Window
         var protocolItem = ProtocolBox.SelectedItem as ComboBoxItem;
         var protocol = protocolItem?.Content?.ToString() ?? "grpc";
 
-        Result = new ClientInfo(_originalId ?? Guid.NewGuid().ToString(), newName, AddressBox.Text.Trim(), protocol);
+        Result = new ClientInfo(originalId ?? Guid.NewGuid().ToString(), newName, AddressBox.Text.Trim(), protocol);
         Close(Result);
     }
 

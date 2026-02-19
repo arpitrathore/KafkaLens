@@ -9,27 +9,19 @@ using Serilog;
 
 namespace KafkaLens.Clients;
 
-public class LocalClient : IKafkaLensClient
+public class LocalClient(IClusterInfoRepository infoRepository) : IKafkaLensClient
 {
     public string Name { get; } = "Local";
     public bool CanEditClusters => true;
     public bool CanSaveMessages => true;
 
-    private readonly IClusterInfoRepository infoRepository;
-    private readonly ConsumerFactory consumerFactory;
+    private readonly ConsumerFactory consumerFactory = new();
 
     // key = clusterInfo id, value = kafka clusterInfo
     private ReadOnlyDictionary<string, ClusterInfo> Clusters => infoRepository.GetAll();
 
     // key = clusterInfo id, value = kafka consumer
     private readonly IDictionary<string, IKafkaConsumer> consumers = new Dictionary<string, IKafkaConsumer>();
-
-    public LocalClient(
-        IClusterInfoRepository infoRepository)
-    {
-        this.infoRepository = infoRepository;
-        consumerFactory = new ConsumerFactory();
-    }
 
     #region Create
     public Task<bool> ValidateConnectionAsync(string address)

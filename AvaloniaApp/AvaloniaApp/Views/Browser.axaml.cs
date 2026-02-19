@@ -15,13 +15,10 @@ namespace AvaloniaApp.Views;
 public partial class Browser : UserControl
 {
     private OpenedClusterViewModel? Context => (OpenedClusterViewModel?)DataContext;
-    // TODO: Implement message table filtering
-    // private string messageTablePositiveFilter = "";
-    // private string messageTableNegativeFilter = "";
     private MessageViewModel? subscribedMessage;
     private OpenedClusterViewModel? previousContext;
-    private TextMate.Installation? _textMateInstallation;
-    private RegistryOptions? _registryOptions;
+    private TextMate.Installation? textMateInstallation;
+    private RegistryOptions? registryOptions;
 
     public Browser()
     {
@@ -161,14 +158,14 @@ public partial class Browser : UserControl
 
     private void ApplyTextMateTheme(ThemeName textMateTheme)
     {
-        _registryOptions = new RegistryOptions(textMateTheme);
-        _textMateInstallation?.Dispose();
-        _textMateInstallation = MessageViewer.InstallTextMate(_registryOptions);
+        registryOptions = new RegistryOptions(textMateTheme);
+        textMateInstallation?.Dispose();
+        textMateInstallation = MessageViewer.InstallTextMate(registryOptions);
 
-        var jsonLanguage = _registryOptions.GetLanguageByExtension(".json");
+        var jsonLanguage = registryOptions.GetLanguageByExtension(".json");
         if (jsonLanguage != null)
         {
-            _textMateInstallation.SetGrammar(_registryOptions.GetScopeByLanguageId(jsonLanguage.Id));
+            textMateInstallation.SetGrammar(registryOptions.GetScopeByLanguageId(jsonLanguage.Id));
         }
 
         ApplySelectionColors();

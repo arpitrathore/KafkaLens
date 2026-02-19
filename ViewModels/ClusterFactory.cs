@@ -4,16 +4,9 @@ using Serilog;
 
 namespace KafkaLens.ViewModels;
 
-public class ClusterFactory : IClusterFactory
+public class ClusterFactory(IClientFactory clientFactory) : IClusterFactory
 {
-    private readonly IClientFactory clientFactory;
-
     private ObservableCollection<ClusterViewModel> Clusters { get; } = new();
-
-    public ClusterFactory(IClientFactory clientFactory)
-    {
-        this.clientFactory = clientFactory;
-    }
 
     public ObservableCollection<ClusterViewModel> GetAllClusters()
     {
@@ -45,7 +38,7 @@ public class ClusterFactory : IClusterFactory
         }
     }
 
-    private void UpdateClusters(IKafkaLensClient client, IEnumerable<Shared.Models.KafkaCluster> clusters)
+    private void UpdateClusters(IKafkaLensClient client, IList<Shared.Models.KafkaCluster> clusters)
     {
         var newClusters = new List<ClusterViewModel>();
         foreach (var cluster in clusters)

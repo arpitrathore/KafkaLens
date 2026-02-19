@@ -24,13 +24,8 @@ namespace AvaloniaApp;
 
 public partial class App : Application
 {
-    public IServiceProvider Services { get; }
+    public IServiceProvider Services { get; } = ConfigureServices();
     public new static App Current => (App)Application.Current!;
-
-    public App()
-    {
-        Services = ConfigureServices();
-    }
 
     private static IServiceProvider ConfigureServices()
     {
@@ -200,8 +195,8 @@ public partial class App : Application
         AvaloniaXamlLoader.Load(this);
     }
 
-    private ResourceDictionary? _currentThemeResources;
-    private string _currentThemeName = "";
+    private ResourceDictionary? currentThemeResources;
+    private string currentThemeName = "";
 
     private ResourceDictionary? LoadThemeFromFile(string themeName)
     {
@@ -244,13 +239,13 @@ public partial class App : Application
     private void ApplyTheme(string themeName)
     {
         Log.Information("ApplyTheme called with: {ThemeName}", themeName);
-        _currentThemeName = themeName;
+        currentThemeName = themeName;
 
         // Remove previously applied theme resources
-        if (_currentThemeResources != null)
+        if (currentThemeResources != null)
         {
-            Resources.MergedDictionaries.Remove(_currentThemeResources);
-            _currentThemeResources = null;
+            Resources.MergedDictionaries.Remove(currentThemeResources);
+            currentThemeResources = null;
         }
 
         // Determine which theme file to load and which base variant to use
@@ -273,7 +268,7 @@ public partial class App : Application
         if (themeDict != null)
         {
             Resources.MergedDictionaries.Add(themeDict);
-            _currentThemeResources = themeDict;
+            currentThemeResources = themeDict;
             Log.Information("Theme {ThemeName} applied. MergedDictionaries count: {Count}", themeName, Resources.MergedDictionaries.Count);
         }
         else

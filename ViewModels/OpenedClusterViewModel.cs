@@ -30,7 +30,7 @@ public partial class OpenedClusterViewModel : ViewModelBase, ITreeNode
         set => SetProperty(ref field, value);
     }
 
-    public ITreeNode.NodeType Type => ITreeNode.NodeType.CLUSTER;
+    public ITreeNode.NodeType Type => ITreeNode.NodeType.Cluster;
 
     [ObservableProperty] private bool isSelected;
     [ObservableProperty] private bool isExpanded;
@@ -73,10 +73,10 @@ public partial class OpenedClusterViewModel : ViewModelBase, ITreeNode
                 OnPropertyChanged(nameof(IsFetchOptionsEnabled));
             }
         }
-    } = ITreeNode.NodeType.NONE;
+    } = ITreeNode.NodeType.None;
 
-    public bool IsFetchOptionsEnabled => SelectedNodeType == ITreeNode.NodeType.TOPIC ||
-                                         SelectedNodeType == ITreeNode.NodeType.PARTITION;
+    public bool IsFetchOptionsEnabled => SelectedNodeType == ITreeNode.NodeType.Topic ||
+                                         SelectedNodeType == ITreeNode.NodeType.Partition;
 
     public int[] FetchCounts => new int[] { 10, 25, 50, 100, 250, 500, 1000, 5000, 10000, 25000 };
     public int FetchCount { get; set; } = 10;
@@ -212,7 +212,7 @@ public partial class OpenedClusterViewModel : ViewModelBase, ITreeNode
 
     #region SAVE MESSAGES
 
-    private static readonly string SAVE_MESSAGES_DIR = Path.Combine(
+    private static readonly string SaveMessagesDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "KafkaLens",
         "SavedMessages");
@@ -255,7 +255,7 @@ public partial class OpenedClusterViewModel : ViewModelBase, ITreeNode
         Log.Information($"Saving {messages.Count} messages");
 
         // Pre-create partition directories
-        var baseDir = Path.Join(SAVE_MESSAGES_DIR, Name);
+        var baseDir = Path.Join(SaveMessagesDir, Name);
 
         var partitionDirs = messages
             .Select(m => Path.Join(baseDir, m.Topic, m.Partition.ToString()))
@@ -428,14 +428,14 @@ public partial class OpenedClusterViewModel : ViewModelBase, ITreeNode
 
             if (SetProperty(ref selectedNode, value))
             {
-                SelectedNodeType = selectedNode?.Type ?? ITreeNode.NodeType.NONE;
+                SelectedNodeType = selectedNode?.Type ?? ITreeNode.NodeType.None;
 
-                FetchPositions = SelectedNodeType == ITreeNode.NodeType.PARTITION
+                FetchPositions = SelectedNodeType == ITreeNode.NodeType.Partition
                     ? FetchPositionsForPartition
                     : FetchPositionsForTopic;
                 FetchPosition = null;
                 FetchPosition = FetchPositions[0];
-                if (selectedNode is { Type: ITreeNode.NodeType.PARTITION } or { Type: ITreeNode.NodeType.TOPIC })
+                if (selectedNode is { Type: ITreeNode.NodeType.Partition } or { Type: ITreeNode.NodeType.Topic })
                 {
                     if (IsCurrent)
                     {

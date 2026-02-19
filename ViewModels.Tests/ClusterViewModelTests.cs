@@ -4,29 +4,29 @@ namespace KafkaLens.ViewModels.Tests;
 
 public class ClusterViewModelTests
 {
-    private readonly IFixture _fixture;
-    private readonly IKafkaLensClient _mockClient;
-    private readonly KafkaCluster _cluster;
+    private readonly IFixture fixture;
+    private readonly IKafkaLensClient mockClient;
+    private readonly KafkaCluster cluster;
 
     public ClusterViewModelTests()
     {
-        _fixture = new Fixture();
-        _mockClient = Substitute.For<IKafkaLensClient>();
-        _cluster = _fixture.Create<KafkaCluster>();
+        fixture = new Fixture();
+        mockClient = Substitute.For<IKafkaLensClient>();
+        cluster = fixture.Create<KafkaCluster>();
     }
 
     [Fact]
     public void Constructor_ShouldInitializeProperties()
     {
         // Act
-        var viewModel = new ClusterViewModel(_cluster, _mockClient);
+        var viewModel = new ClusterViewModel(cluster, mockClient);
 
         // Assert
-        Assert.Equal(_mockClient, viewModel.Client);
-        Assert.Equal(_cluster.Id, viewModel.Id);
-        Assert.Equal(_cluster.Name, viewModel.Name);
-        Assert.Equal(_cluster.Address, viewModel.Address);
-        Assert.Equal(_cluster.IsConnected, viewModel.IsConnected);
+        Assert.Equal(mockClient, viewModel.Client);
+        Assert.Equal(cluster.Id, viewModel.Id);
+        Assert.Equal(cluster.Name, viewModel.Name);
+        Assert.Equal(cluster.Address, viewModel.Address);
+        Assert.Equal(cluster.IsConnected, viewModel.IsConnected);
         Assert.NotNull(viewModel.Topics);
         Assert.NotNull(viewModel.LoadTopicsCommand);
     }
@@ -35,24 +35,24 @@ public class ClusterViewModelTests
     public async Task CheckConnectionAsync_ShouldUpdateIsConnected()
     {
         // Arrange
-        var viewModel = new ClusterViewModel(_cluster, _mockClient);
-        _mockClient.ValidateConnectionAsync(_cluster.Address).Returns(Task.FromResult(true));
+        var viewModel = new ClusterViewModel(cluster, mockClient);
+        mockClient.ValidateConnectionAsync(cluster.Address).Returns(Task.FromResult(true));
 
         // Act
         await viewModel.CheckConnectionAsync();
 
         // Assert
         Assert.True(viewModel.IsConnected);
-        await _mockClient.Received(1).ValidateConnectionAsync(_cluster.Address);
+        await mockClient.Received(1).ValidateConnectionAsync(cluster.Address);
     }
 
     [Fact]
     public async Task LoadTopicsAsync_ShouldLoadTopicsSuccessfully()
     {
         // Arrange
-        var viewModel = new ClusterViewModel(_cluster, _mockClient);
-        var topics = _fixture.CreateMany<Topic>().ToList();
-        _mockClient.GetTopicsAsync(_cluster.Id).Returns((IList<Topic>)topics);
+        var viewModel = new ClusterViewModel(cluster, mockClient);
+        var topics = fixture.CreateMany<Topic>().ToList();
+        mockClient.GetTopicsAsync(cluster.Id).Returns((IList<Topic>)topics);
 
         // Act
         await viewModel.LoadTopicsCommand.ExecuteAsync(null);
@@ -61,15 +61,15 @@ public class ClusterViewModelTests
         Assert.Equal(topics.Count, viewModel.Topics.Count);
         viewModel.Topics.Should().BeEquivalentTo(topics);
         Assert.True(viewModel.IsConnected);
-        await _mockClient.Received(1).GetTopicsAsync(_cluster.Id);
+        await mockClient.Received(1).GetTopicsAsync(cluster.Id);
     }
 
     [Fact]
     public async Task LoadTopicsAsync_ShouldHandleException()
     {
         // Arrange
-        var viewModel = new ClusterViewModel(_cluster, _mockClient);
-        _mockClient.GetTopicsAsync(_cluster.Id).Returns(Task.FromException<IList<Topic>>(new Exception("Test error")));
+        var viewModel = new ClusterViewModel(cluster, mockClient);
+        mockClient.GetTopicsAsync(cluster.Id).Returns(Task.FromException<IList<Topic>>(new Exception("Test error")));
 
         // Act
         await viewModel.LoadTopicsCommand.ExecuteAsync(null);
@@ -83,10 +83,10 @@ public class ClusterViewModelTests
     public async Task LoadTopicsAsync_ShouldClearExistingTopics()
     {
         // Arrange
-        var viewModel = new ClusterViewModel(_cluster, _mockClient);
-        viewModel.Topics.Add(_fixture.Create<Topic>());
-        var newTopics = _fixture.CreateMany<Topic>().ToList();
-        _mockClient.GetTopicsAsync(_cluster.Id).Returns((IList<Topic>)newTopics);
+        var viewModel = new ClusterViewModel(cluster, mockClient);
+        viewModel.Topics.Add(fixture.Create<Topic>());
+        var newTopics = fixture.CreateMany<Topic>().ToList();
+        mockClient.GetTopicsAsync(cluster.Id).Returns((IList<Topic>)newTopics);
 
         // Act
         await viewModel.LoadTopicsCommand.ExecuteAsync(null);
@@ -100,8 +100,8 @@ public class ClusterViewModelTests
     public async Task CheckConnectionAsync_WhenReturnsFalse_ShouldSetIsConnectedToFalse()
     {
         // Arrange
-        var viewModel = new ClusterViewModel(_cluster, _mockClient);
-        _mockClient.ValidateConnectionAsync(_cluster.Address).Returns(Task.FromResult(false));
+        var viewModel = new ClusterViewModel(cluster, mockClient);
+        mockClient.ValidateConnectionAsync(cluster.Address).Returns(Task.FromResult(false));
 
         // Act
         await viewModel.CheckConnectionAsync();
@@ -116,8 +116,8 @@ public class ClusterViewModelTests
     public async Task CheckConnectionAsync_WhenThrows_ShouldPropagateException()
     {
         // Arrange
-        var viewModel = new ClusterViewModel(_cluster, _mockClient);
-        _mockClient.ValidateConnectionAsync(_cluster.Address)
+        var viewModel = new ClusterViewModel(cluster, mockClient);
+        mockClient.ValidateConnectionAsync(cluster.Address)
             .Returns(Task.FromException<bool>(new Exception("Connection failed")));
 
         // Act & Assert

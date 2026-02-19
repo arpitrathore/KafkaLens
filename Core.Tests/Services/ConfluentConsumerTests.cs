@@ -21,6 +21,8 @@ public class ConfluentConsumerTests
         private static Func<IConsumer<byte[], byte[]>> _consumerFactory;
         private static IAdminClient _nextMockAdminClient;
 
+        public Func<IEnumerable<TopicPartitionOffsetSpec>, Task<ListOffsetsResult>> ListOffsetsHandler { get; set; }
+
         private TestConfluentConsumer(string url)
             : base(url)
         {
@@ -35,8 +37,6 @@ public class ConfluentConsumerTests
 
         protected override IConsumer<byte[], byte[]> CreateConsumer() => _consumerFactory?.Invoke() ?? Substitute.For<IConsumer<byte[], byte[]>>();
         protected override IAdminClient CreateAdminClient(string url) => _nextMockAdminClient ?? Substitute.For<IAdminClient>();
-
-        public Func<IEnumerable<TopicPartitionOffsetSpec>, Task<ListOffsetsResult>> ListOffsetsHandler { get; set; }
 
         protected override Task<ListOffsetsResult> ListOffsetsAsync(IEnumerable<TopicPartitionOffsetSpec> topicPartitionOffsets, ListOffsetsOptions options)
         {

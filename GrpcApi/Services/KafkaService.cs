@@ -9,21 +9,17 @@ using Topic = KafkaLens.Grpc.Topic;
 
 namespace GrpcApi.Services;
 
-public class KafkaService : KafkaApi.KafkaApiBase
+public class KafkaService(ILogger<KafkaService> logger, IKafkaLensClient kafkaLensClient)
+    : KafkaApi.KafkaApiBase
 {
     #region fields
 
-    private readonly ILogger<KafkaService> _logger;
-    private readonly IKafkaLensClient kafkaLensClient;
+    private readonly ILogger<KafkaService> _logger = logger;
 
     #endregion
 
     #region Constructor
-    public KafkaService(ILogger<KafkaService> logger, IKafkaLensClient kafkaLensClient)
-    {
-        _logger = logger;
-        this.kafkaLensClient = kafkaLensClient;
-    }
+
     #endregion Constructor
 
     #region  Create

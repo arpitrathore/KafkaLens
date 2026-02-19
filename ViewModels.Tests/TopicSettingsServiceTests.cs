@@ -4,18 +4,13 @@ namespace KafkaLens.ViewModels.Tests;
 
 public class TopicSettingsServiceTests : IDisposable
 {
-    private readonly string _tempFilePath;
-
-    public TopicSettingsServiceTests()
-    {
-        _tempFilePath = Path.Combine(Path.GetTempPath(), $"topic_settings_test_{Guid.NewGuid()}.json");
-    }
+    private readonly string tempFilePath = Path.Combine(Path.GetTempPath(), $"topic_settings_test_{Guid.NewGuid()}.json");
 
     public void Dispose()
     {
-        if (File.Exists(_tempFilePath))
+        if (File.Exists(tempFilePath))
         {
-            File.Delete(_tempFilePath);
+            File.Delete(tempFilePath);
         }
     }
 
@@ -23,7 +18,7 @@ public class TopicSettingsServiceTests : IDisposable
     public void GetSettings_WhenNoSettingsExist_ShouldReturnDefaults()
     {
         // Arrange
-        var service = new TopicSettingsService(_tempFilePath);
+        var service = new TopicSettingsService(tempFilePath);
 
         // Act
         var settings = service.GetSettings("cluster-1", "topic-1");
@@ -37,7 +32,7 @@ public class TopicSettingsServiceTests : IDisposable
     public void SetSettings_ShouldPersistAndRetrieve()
     {
         // Arrange
-        var service = new TopicSettingsService(_tempFilePath);
+        var service = new TopicSettingsService(tempFilePath);
         var settings = new TopicSettings
         {
             KeyFormatter = "Text",
@@ -57,7 +52,7 @@ public class TopicSettingsServiceTests : IDisposable
     public void SetSettings_WithApplyToAllClusters_ShouldApplyGlobally()
     {
         // Arrange
-        var service = new TopicSettingsService(_tempFilePath);
+        var service = new TopicSettingsService(tempFilePath);
         var settings = new TopicSettings
         {
             KeyFormatter = "Text",
@@ -77,7 +72,7 @@ public class TopicSettingsServiceTests : IDisposable
     public void SetSettings_ClusterSpecific_ShouldOverrideGlobal()
     {
         // Arrange
-        var service = new TopicSettingsService(_tempFilePath);
+        var service = new TopicSettingsService(tempFilePath);
         var globalSettings = new TopicSettings { KeyFormatter = "Text", ValueFormatter = "JSON" };
         var clusterSettings = new TopicSettings { KeyFormatter = "Number", ValueFormatter = "Text" };
 
@@ -102,10 +97,10 @@ public class TopicSettingsServiceTests : IDisposable
         var settings = new TopicSettings { KeyFormatter = "Text", ValueFormatter = "JSON" };
 
         // Act
-        var service1 = new TopicSettingsService(_tempFilePath);
+        var service1 = new TopicSettingsService(tempFilePath);
         service1.SetSettings("cluster-1", "topic-1", settings);
 
-        var service2 = new TopicSettingsService(_tempFilePath);
+        var service2 = new TopicSettingsService(tempFilePath);
         var retrieved = service2.GetSettings("cluster-1", "topic-1");
 
         // Assert
@@ -117,7 +112,7 @@ public class TopicSettingsServiceTests : IDisposable
     public void GetSettings_ReturnsCopy_NotReference()
     {
         // Arrange
-        var service = new TopicSettingsService(_tempFilePath);
+        var service = new TopicSettingsService(tempFilePath);
         var settings = new TopicSettings { KeyFormatter = "Text", ValueFormatter = "JSON" };
         service.SetSettings("cluster-1", "topic-1", settings);
 
