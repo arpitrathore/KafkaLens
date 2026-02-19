@@ -1,4 +1,7 @@
-﻿using System.Text;
+﻿using System;
+using System.Linq;
+using System.Collections.Generic;
+using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -20,7 +23,6 @@ public class JsonFormatter : IMessageFormatter
         {
             return null;
         }
-        searchText = searchText.ToLowerInvariant();
 
         try
         {
@@ -30,24 +32,20 @@ public class JsonFormatter : IMessageFormatter
             }
 
             var jObject = JObject.Parse(text);
-            StringWriter stringWriter = new StringWriter();
-            using (StringWriter sw = stringWriter)
+
+            using var sw = new StringWriter();
+            using (var jw = new JsonTextWriter(sw))
             {
-                using (JsonTextWriter jw = new JsonTextWriter(sw))
-                {
-                    jw.Formatting = Newtonsoft.Json.Formatting.Indented;
-                    jw.IndentChar = INDENT_CHAR;
-                    jw.Indentation = INDENT_SIZE;
+                jw.Formatting = Newtonsoft.Json.Formatting.Indented;
+                jw.IndentChar = INDENT_CHAR;
+                jw.Indentation = INDENT_SIZE;
 
-                    FilterObjects(jObject, searchText);
+                FilterObjects(jObject, searchText);
 
-                    jObject.WriteTo(jw);
-                }
+                jObject.WriteTo(jw);
             }
 
-            stringWriter.Close();
-            var formatted = stringWriter.ToString();
-            return formatted;
+            return sw.ToString();
         }
         catch (JsonException)
         {
@@ -61,9 +59,11 @@ public class JsonFormatter : IMessageFormatter
         {
             var jObject = JObject.Parse(text);
             var formatted = jObject.ToString(Newtonsoft.Json.Formatting.Indented);
-            var lines = formatted.Split('\n');
-            var filteredLines = lines.Where(line => line.ToLowerInvariant().Contains(searchText));
-            return string.Join("\n", filteredLines);
+            // split on both CRLF and LF to be robust across platforms
+            var lines = formatted.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+            var filteredLines = lines.Where(line =>
+                !string.IsNullOrEmpty(line) && line.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0);
+            return string.Join(Environment.NewLine, filteredLines);
         }
         catch (JsonException)
         {
@@ -172,9 +172,11 @@ public class JsonFormatter : IMessageFormatter
         }
     }
 
-    private static bool Matches(object val, string searchText)
+    private static bool Matches(object? val, string searchText)
     {
-        return val.ToString()?.ToLower().Contains(searchText) ?? false;
+        if (val == null) return false;
+        var s = val.ToString();
+        return !string.IsNullOrEmpty(s) && s.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     public string? Format(byte[] data, bool prettyPrint)
@@ -182,29 +184,25 @@ public class JsonFormatter : IMessageFormatter
         var text = Encoding.UTF8.GetString(data);
         if (text.Length < data.Length)
         {
-            // return null;
+            return null;
         }
 
         try
         {
             var jObject = JObject.Parse(text);
-            StringWriter stringWriter = new StringWriter();
-            using (StringWriter sw = stringWriter)
-            {
-                using (JsonTextWriter jw = new JsonTextWriter(sw))
-                {
-                    jw.Formatting = prettyPrint ? Newtonsoft.Json.Formatting.Indented
-                            : Newtonsoft.Json.Formatting.None;
-                    jw.IndentChar = INDENT_CHAR;
-                    jw.Indentation = INDENT_SIZE;
 
-                    jObject.WriteTo(jw);
-                }
+            using var sw = new StringWriter();
+            using (var jw = new JsonTextWriter(sw))
+            {
+                jw.Formatting = prettyPrint ? Newtonsoft.Json.Formatting.Indented
+                    : Newtonsoft.Json.Formatting.None;
+                jw.IndentChar = INDENT_CHAR;
+                jw.Indentation = INDENT_SIZE;
+
+                jObject.WriteTo(jw);
             }
 
-            stringWriter.Close();
-            var formatted = stringWriter.ToString();
-            return formatted;
+            return sw.ToString();
         }
         catch (JsonException)
         {

@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using System.Text;
 
 namespace KafkaLens.Formatting;
@@ -17,8 +19,16 @@ public class TextFormatter : IMessageFormatter
             return text;
         }
 
-        // If line filter is not used, just return if text contains search text
-        return text.ToLowerInvariant().Contains(searchText.ToLowerInvariant()) ? text : "";
+        if (useObjectFilter)
+        {
+            return text.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0 ? text : string.Empty;
+        }
+
+        // Line-filter mode: return only lines that contain the search text (case-insensitive)
+        var lines = text.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+        var filtered = lines.Where(line => !string.IsNullOrEmpty(line) &&
+                                           line.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0);
+        return string.Join(Environment.NewLine, filtered);
     }
 
     public string Name => "Text";
