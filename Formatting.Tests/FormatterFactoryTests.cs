@@ -52,6 +52,15 @@ public class FormatterFactoryTests
     }
 
     [Fact]
+    public void GetFormatter_Int32_ReturnsInt32Formatter()
+    {
+        var formatter = factory.GetFormatter("Int32");
+
+        Assert.NotNull(formatter);
+        Assert.IsType<Int32Formatter>(formatter);
+    }
+
+    [Fact]
     public void GetFormatter_UnknownName_ThrowsKeyNotFoundException()
     {
         Assert.Throws<KeyNotFoundException>(() => factory.GetFormatter("Unknown"));
@@ -64,6 +73,7 @@ public class FormatterFactoryTests
 
         Assert.Contains("Json", names);
         Assert.Contains("Text", names);
+        Assert.Contains("Int32", names);
     }
 
     [Fact]
@@ -80,5 +90,22 @@ public class FormatterFactoryTests
         var formatters = factory.GetFormatters();
 
         Assert.All(formatters, f => Assert.False(string.IsNullOrEmpty(f.Name)));
+    }
+
+    [Fact]
+    public void GetBuiltInKeyFormatterNames_ContainsNumericAndText()
+    {
+        var names = factory.GetBuiltInKeyFormatterNames();
+
+        Assert.Contains("Text", names);
+        Assert.Contains("Int8", names);
+        Assert.Contains("UInt8", names);
+        Assert.Contains("Int16", names);
+        Assert.Contains("UInt16", names);
+        Assert.Contains("Int32", names);
+        Assert.Contains("UInt32", names);
+        Assert.Contains("Int64", names);
+        Assert.Contains("UInt64", names);
+        Assert.DoesNotContain("Json", names);
     }
 }

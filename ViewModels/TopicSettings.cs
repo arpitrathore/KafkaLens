@@ -2,6 +2,9 @@ namespace KafkaLens.ViewModels;
 
 public class TopicSettings
 {
-    public string KeyFormatter { get; set; } = "Auto";
-    public string ValueFormatter { get; set; } = "Auto";
+    [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+    public string? KeyFormatter { get; set; }
+
+    [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+    public string? ValueFormatter { get; set; }
 }

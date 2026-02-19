@@ -7,9 +7,18 @@ public class FormatterFactory
 {
     public static FormatterFactory Instance { get; }
     private readonly IDictionary<string, IMessageFormatter> formatters = new Dictionary<string, IMessageFormatter>();
+    private readonly List<string> builtInKeyFormatterNames = new();
+    private readonly HashSet<string> builtInKeyFormatterNamesSet = new(StringComparer.Ordinal);
     private const string JSON = "Json";
     private const string TEXT = "Text";
-    private const string NUMBER = "Number";
+    private const string INT8 = "Int8";
+    private const string UINT8 = "UInt8";
+    private const string INT16 = "Int16";
+    private const string UINT16 = "UInt16";
+    private const string INT32 = "Int32";
+    private const string UINT32 = "UInt32";
+    private const string INT64 = "Int64";
+    private const string UINT64 = "UInt64";
 
     static FormatterFactory()
     {
@@ -18,9 +27,16 @@ public class FormatterFactory
 
     private FormatterFactory()
     {
-        formatters.Add(JSON, new JsonFormatter());
-        formatters.Add(TEXT, new TextFormatter());
-        formatters.Add(NUMBER, new NumberFormatter());
+        AddBuiltInFormatter(new JsonFormatter(), supportsKeyFormatting: false);
+        AddBuiltInFormatter(new TextFormatter(), supportsKeyFormatting: true);
+        AddBuiltInFormatter(new Int8Formatter(), supportsKeyFormatting: true);
+        AddBuiltInFormatter(new UInt8Formatter(), supportsKeyFormatting: true);
+        AddBuiltInFormatter(new Int16Formatter(), supportsKeyFormatting: true);
+        AddBuiltInFormatter(new UInt16Formatter(), supportsKeyFormatting: true);
+        AddBuiltInFormatter(new Int32Formatter(), supportsKeyFormatting: true);
+        AddBuiltInFormatter(new UInt32Formatter(), supportsKeyFormatting: true);
+        AddBuiltInFormatter(new Int64Formatter(), supportsKeyFormatting: true);
+        AddBuiltInFormatter(new UInt64Formatter(), supportsKeyFormatting: true);
     }
 
     public IMessageFormatter DefaultFormatter => formatters[JSON];
@@ -52,9 +68,23 @@ public class FormatterFactory
         return formatters.Keys.ToList();
     }
 
+    public IList<string> GetBuiltInKeyFormatterNames()
+    {
+        return builtInKeyFormatterNames.ToList();
+    }
+
     public List<IMessageFormatter> GetFormatters()
     {
         return formatters.Values.ToList();
+    }
+
+    private void AddBuiltInFormatter(IMessageFormatter formatter, bool supportsKeyFormatting)
+    {
+        formatters.Add(formatter.Name, formatter);
+        if (supportsKeyFormatting && builtInKeyFormatterNamesSet.Add(formatter.Name))
+        {
+            builtInKeyFormatterNames.Add(formatter.Name);
+        }
     }
 
     private void AddFormatters(DirectoryInfo formattersDir)

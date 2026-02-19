@@ -24,8 +24,8 @@ public class TopicSettingsServiceTests : IDisposable
         var settings = service.GetSettings("cluster-1", "topic-1");
 
         // Assert
-        Assert.Equal("Auto", settings.KeyFormatter);
-        Assert.Equal("Auto", settings.ValueFormatter);
+        Assert.Null(settings.KeyFormatter);
+        Assert.Null(settings.ValueFormatter);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public class TopicSettingsServiceTests : IDisposable
         // Arrange
         var service = new TopicSettingsService(tempFilePath);
         var globalSettings = new TopicSettings { KeyFormatter = "Text", ValueFormatter = "JSON" };
-        var clusterSettings = new TopicSettings { KeyFormatter = "Number", ValueFormatter = "Text" };
+        var clusterSettings = new TopicSettings { KeyFormatter = "Int32", ValueFormatter = "Text" };
 
         // Act
         service.SetSettings("cluster-1", "topic-1", globalSettings, applyToAllClusters: true);
@@ -82,7 +82,7 @@ public class TopicSettingsServiceTests : IDisposable
 
         // Assert
         var fromCluster2 = service.GetSettings("cluster-2", "topic-1");
-        Assert.Equal("Number", fromCluster2.KeyFormatter);
+        Assert.Equal("Int32", fromCluster2.KeyFormatter);
         Assert.Equal("Text", fromCluster2.ValueFormatter);
 
         var fromCluster3 = service.GetSettings("cluster-3", "topic-1");
@@ -106,6 +106,28 @@ public class TopicSettingsServiceTests : IDisposable
         // Assert
         Assert.Equal("Text", retrieved.KeyFormatter);
         Assert.Equal("JSON", retrieved.ValueFormatter);
+    }
+
+    [Fact]
+    public void SetSettings_WhenUnknown_ShouldNotPersistTopicEntry()
+    {
+        // Arrange
+        var service = new TopicSettingsService(tempFilePath);
+        var unknown = new TopicSettings
+        {
+            KeyFormatter = "Unknown",
+            ValueFormatter = "Unknown"
+        };
+
+        // Act
+        service.SetSettings("cluster-1", "topic-1", unknown);
+        var retrieved = service.GetSettings("cluster-1", "topic-1");
+        var json = File.ReadAllText(tempFilePath);
+
+        // Assert
+        Assert.Null(retrieved.KeyFormatter);
+        Assert.Null(retrieved.ValueFormatter);
+        Assert.DoesNotContain("topic-1", json);
     }
 
     [Fact]

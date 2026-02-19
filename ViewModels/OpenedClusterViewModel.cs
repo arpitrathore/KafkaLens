@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.Input;
 using KafkaLens.Shared.Models;
 using KafkaLens.Shared;
 using KafkaLens.Formatting;
+using Newtonsoft.Json;
 using Serilog;
 using Xunit;
 
@@ -17,6 +18,9 @@ namespace KafkaLens.ViewModels;
 public partial class OpenedClusterViewModel : ViewModelBase, ITreeNode
 {
     const int SELECTED_ITEM_DELAY_MS = 3;
+    internal const string UnknownFormatterName = "Unknown";
+    internal const string KeyFormatterNamesSettingsKey = "KeyFormatterNames";
+    internal const string ValueFormatterNamesSettingsKey = "ValueFormatterNames";
 
     private readonly ITopicSettingsService topicSettingsService;
     private readonly ClusterViewModel cluster;
@@ -44,6 +48,8 @@ public partial class OpenedClusterViewModel : ViewModelBase, ITreeNode
 
     public RelayCommand ToggleFetchCommand { get; }
     public RelayCommand RefreshCommand { get; }
+    public RelayCommand GuessValueFormatterCommand { get; }
+    public RelayCommand GuessKeyFormatterCommand { get; }
     public IAsyncRelayCommand ChangeFormatterCommand { get; }
     public IAsyncRelayCommand SaveTopicSettingsCommand { get; }
     public AsyncRelayCommand SaveSelectedAsRawCommand { get; set; }
@@ -149,6 +155,8 @@ public partial class OpenedClusterViewModel : ViewModelBase, ITreeNode
             if (IsLoading) StopLoading();
             FetchMessages();
         });
+        GuessValueFormatterCommand = new RelayCommand(() => GuessFormatterForSelectedNode(isKeyFormatter: false));
+        GuessKeyFormatterCommand = new RelayCommand(() => GuessFormatterForSelectedNode(isKeyFormatter: true));
         ChangeFormatterCommand = new AsyncRelayCommand(UpdateFormatterAsync);
         SaveTopicSettingsCommand = new AsyncRelayCommand(SaveTopicSettingsAsync);
 
@@ -171,13 +179,11 @@ public partial class OpenedClusterViewModel : ViewModelBase, ITreeNode
         formatters = FormatterFactory.GetFormatters();
         FormatterNames = formatters.ConvertAll(f => f.Name);
 
-        var names = new List<string>(FormatterNames);
-        names.Insert(0, "Auto");
-        ValueFormatterNames = names;
+        ValueFormatterNames = BuildValueFormatterNames(settingsService);
 
         DefaultFormatter = Formatters.FirstOrDefault() ?? new TextFormatter();
 
-        KeyFormatterNames = new List<string> { "Auto", "Text", "Number" };
+        KeyFormatterNames = BuildKeyFormatterNames(settingsService);
 
         IsActive = true;
     }
@@ -521,7 +527,7 @@ public partial class OpenedClusterViewModel : ViewModelBase, ITreeNode
         bool settingsChanged = false;
         var topicName = GetCurrentTopicName();
 
-        if (node.FormatterName == null || node.FormatterName == "Auto")
+        if (IsUnknownFormatter(node.FormatterName))
         {
             Assert.True(e.NewItems?.Count > 0);
             var message = (Message)e.NewItems![0]!;
@@ -531,14 +537,17 @@ public partial class OpenedClusterViewModel : ViewModelBase, ITreeNode
             Log.Information("Guessed value formatter {Formatter} for topic {Topic}", node.FormatterName, topicName);
         }
 
-        if (node.KeyFormatterName == null || node.KeyFormatterName == "Auto")
+        if (IsUnknownFormatter(node.KeyFormatterName))
         {
             Assert.True(e.NewItems?.Count > 0);
             var message = (Message)e.NewItems![0]!;
             var formatter = GuessKeyFormatter(message);
-            node.KeyFormatterName = formatter.Name;
-            settingsChanged = true;
-            Log.Information("Guessed key formatter {Formatter} for topic {Topic}", node.KeyFormatterName, topicName);
+            if (formatter != null)
+            {
+                node.KeyFormatterName = formatter.Name;
+                settingsChanged = true;
+                Log.Information("Guessed key formatter {Formatter} for topic {Topic}", node.KeyFormatterName, topicName);
+            }
         }
 
         if (settingsChanged)
@@ -554,9 +563,11 @@ public partial class OpenedClusterViewModel : ViewModelBase, ITreeNode
         {
             Log.Debug("Pending messages = {Count}", pendingMessages.Count);
             Log.Debug("Received {Count} messages", e.NewItems?.Count);
+            var valueFormatterName = NormalizeFormatterName(node.FormatterName, ValueFormatterNames);
+            var keyFormatterName = NormalizeFormatterName(node.KeyFormatterName, KeyFormatterNames);
             foreach (var msg in e.NewItems ?? new List<Message>())
             {
-                var viewModel = new MessageViewModel((Message)msg, node.FormatterName, node.KeyFormatterName);
+                var viewModel = new MessageViewModel((Message)msg, valueFormatterName, keyFormatterName);
                 viewModel.Topic = topicName;
                 pendingMessages.Add(viewModel);
             }
@@ -583,6 +594,7 @@ public partial class OpenedClusterViewModel : ViewModelBase, ITreeNode
     {
         IMessageFormatter? best = null;
         int maxLength = 0;
+        var allowedValueFormatterNames = ValueFormatterNames.Where(n => n != UnknownFormatterName).ToHashSet(StringComparer.Ordinal);
 
         // Disable console output, as some formatters may write to it.
         var originalOut = Console.Out;
@@ -591,6 +603,11 @@ public partial class OpenedClusterViewModel : ViewModelBase, ITreeNode
         {
             foreach (IMessageFormatter formatter in Formatters)
             {
+                if (!allowedValueFormatterNames.Contains(formatter.Name))
+                {
+                    continue;
+                }
+
                 try
                 {
                     var text = formatter.Format(message.Value ?? Array.Empty<byte>(), true);
@@ -616,34 +633,47 @@ public partial class OpenedClusterViewModel : ViewModelBase, ITreeNode
         return best;
     }
 
-    private IMessageFormatter GuessKeyFormatter(Message message)
+    private IMessageFormatter? GuessKeyFormatter(Message message)
     {
-        // Try NumberFormatter first
-        var numberFormatter = FormatterFactory.Instance.GetFormatter("Number");
-        if (numberFormatter.Format(message.Key ?? Array.Empty<byte>(), false) != null)
+        var configuredNames = KeyFormatterNames
+            .Where(n => n != UnknownFormatterName)
+            .ToList();
+
+        var prioritized = configuredNames
+            .Where(n => n != "Text")
+            .Concat(configuredNames.Where(n => n == "Text"));
+
+        foreach (var formatterName in prioritized)
         {
-            return numberFormatter;
+            var formatter = FormatterFactory.Instance.GetFormatter(formatterName);
+            if (formatter.Format(message.Key ?? Array.Empty<byte>(), false) != null)
+            {
+                return formatter;
+            }
         }
 
-        return FormatterFactory.Instance.GetFormatter("Text");
+        return null;
     }
 
     internal static string NormalizeFormatterName(string? formatterName, IList<string> allowedNames)
     {
-        if (string.IsNullOrWhiteSpace(formatterName) || formatterName == "Auto")
+        if (string.IsNullOrWhiteSpace(formatterName) ||
+            formatterName == "Auto" ||
+            formatterName == UnknownFormatterName)
         {
-            return "Auto";
+            return UnknownFormatterName;
         }
 
         return allowedNames.Contains(formatterName)
             ? formatterName
-            : "Auto";
+            : UnknownFormatterName;
     }
 
     internal static bool CanApplyFormatterToLoadedMessages(string? formatterName, IList<string> allowedNames)
     {
         return !string.IsNullOrWhiteSpace(formatterName) &&
                formatterName != "Auto" &&
+               formatterName != UnknownFormatterName &&
                allowedNames.Contains(formatterName);
     }
 
@@ -653,11 +683,13 @@ public partial class OpenedClusterViewModel : ViewModelBase, ITreeNode
     {
         if (SelectedNode is not IMessageSource node) return Task.CompletedTask;
 
+        TryGuessUnknownFormattersFromLoadedMessages(node);
+
         var topicName = GetCurrentTopicName();
         var settings = new TopicSettings
         {
-            KeyFormatter = node.KeyFormatterName ?? "Auto",
-            ValueFormatter = node.FormatterName ?? "Auto"
+            KeyFormatter = ToKnownFormatterOrNull(node.KeyFormatterName),
+            ValueFormatter = ToKnownFormatterOrNull(node.FormatterName)
         };
         topicSettingsService.SetSettings(cluster.Id, topicName, settings, ApplyToAllClusters);
 
@@ -666,16 +698,156 @@ public partial class OpenedClusterViewModel : ViewModelBase, ITreeNode
         {
             if (CanApplyFormatterToLoadedMessages(settings.ValueFormatter, ValueFormatterNames))
             {
-                msg.FormatterName = settings.ValueFormatter;
+                msg.FormatterName = settings.ValueFormatter!;
             }
 
             if (CanApplyFormatterToLoadedMessages(settings.KeyFormatter, KeyFormatterNames))
             {
-                msg.KeyFormatterName = settings.KeyFormatter;
+                msg.KeyFormatterName = settings.KeyFormatter!;
             }
         }
 
         return Task.CompletedTask;
+    }
+
+    private void TryGuessUnknownFormattersFromLoadedMessages(IMessageSource node)
+    {
+        if (CurrentMessages.Messages.Count == 0)
+        {
+            return;
+        }
+
+        var firstMessage = CurrentMessages.Messages[0].Message;
+        var topicName = GetCurrentTopicName();
+
+        if (IsUnknownFormatter(node.FormatterName))
+        {
+            var formatter = GuessValueFormatter(firstMessage);
+            node.FormatterName = formatter?.Name ?? DefaultFormatter.Name;
+            Log.Information("Guessed value formatter {Formatter} for topic {Topic}", node.FormatterName, topicName);
+        }
+
+        if (IsUnknownFormatter(node.KeyFormatterName))
+        {
+            var formatter = GuessKeyFormatter(firstMessage);
+            if (formatter != null)
+            {
+                node.KeyFormatterName = formatter.Name;
+                Log.Information("Guessed key formatter {Formatter} for topic {Topic}", node.KeyFormatterName, topicName);
+            }
+        }
+    }
+
+    private void GuessFormatterForSelectedNode(bool isKeyFormatter)
+    {
+        if (SelectedNode is not IMessageSource node || CurrentMessages.Messages.Count == 0)
+        {
+            return;
+        }
+
+        var firstMessage = CurrentMessages.Messages[0].Message;
+        if (isKeyFormatter)
+        {
+            var keyFormatter = GuessKeyFormatter(firstMessage)?.Name;
+            if (string.IsNullOrWhiteSpace(keyFormatter))
+            {
+                return;
+            }
+
+            node.KeyFormatterName = keyFormatter;
+            foreach (var msg in CurrentMessages.Messages)
+            {
+                msg.KeyFormatterName = keyFormatter!;
+            }
+
+            return;
+        }
+
+        var valueFormatter = GuessValueFormatter(firstMessage)?.Name ?? DefaultFormatter.Name;
+        node.FormatterName = valueFormatter;
+        foreach (var msg in CurrentMessages.Messages)
+        {
+            msg.FormatterName = valueFormatter;
+        }
+    }
+
+    private static bool IsUnknownFormatter(string? formatterName)
+    {
+        return string.IsNullOrWhiteSpace(formatterName) ||
+               formatterName == "Auto" ||
+               formatterName == UnknownFormatterName;
+    }
+
+    private static string? ToKnownFormatterOrNull(string? formatterName)
+    {
+        return IsUnknownFormatter(formatterName) ? null : formatterName;
+    }
+
+    private IList<string> BuildKeyFormatterNames(ISettingsService settingsService)
+    {
+        var allowed = FormatterFactory.Instance.GetBuiltInKeyFormatterNames();
+        var configured = ParseConfiguredFormatterNames(settingsService.GetValue(KeyFormatterNamesSettingsKey), allowed);
+        var names = configured.Count > 0 ? configured : allowed;
+        var result = new List<string>(names.Count + 1) { UnknownFormatterName };
+        result.AddRange(names);
+        return result;
+    }
+
+    private IList<string> BuildValueFormatterNames(ISettingsService settingsService)
+    {
+        var allowed = FormatterNames;
+        var configured = ParseConfiguredFormatterNames(settingsService.GetValue(ValueFormatterNamesSettingsKey), allowed);
+        var names = configured.Count > 0 ? configured : allowed;
+        var result = new List<string>(names.Count + 1) { UnknownFormatterName };
+        result.AddRange(names);
+        return result;
+    }
+
+    private static IList<string> ParseConfiguredFormatterNames(string? configuredRaw, IList<string> allowed)
+    {
+        if (string.IsNullOrWhiteSpace(configuredRaw))
+        {
+            return new List<string>();
+        }
+
+        var configured = TryParseFormatterList(configuredRaw);
+        if (configured.Count == 0)
+        {
+            return new List<string>();
+        }
+
+        var allowedSet = new HashSet<string>(allowed, StringComparer.Ordinal);
+        var filtered = new List<string>();
+        foreach (var name in configured)
+        {
+            if (allowedSet.Contains(name) && !filtered.Contains(name))
+            {
+                filtered.Add(name);
+            }
+        }
+
+        return filtered;
+    }
+
+    private static IList<string> TryParseFormatterList(string configuredRaw)
+    {
+        try
+        {
+            var parsed = JsonConvert.DeserializeObject<List<string>>(configuredRaw);
+            if (parsed != null)
+            {
+                return parsed.Where(v => !string.IsNullOrWhiteSpace(v)).ToList();
+            }
+        }
+        catch
+        {
+            // Fall back to comma-separated list.
+        }
+
+        return configuredRaw
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .ToList();
     }
 
     public void UpdateMessages()

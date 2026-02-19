@@ -20,7 +20,7 @@ public class OpenedClusterViewModelBusinessLogicTests
         settingsService = Substitute.For<ISettingsService>();
         topicSettingsService = Substitute.For<ITopicSettingsService>();
         topicSettingsService.GetSettings(Arg.Any<string>(), Arg.Any<string>())
-            .Returns(new TopicSettings { KeyFormatter = "Auto", ValueFormatter = "Auto" });
+            .Returns(new TopicSettings());
         OpenedClusterViewModel.FormatterFactory = FormatterFactory.Instance;
     }
 
@@ -29,6 +29,61 @@ public class OpenedClusterViewModelBusinessLogicTests
         var cluster = new KafkaCluster(clusterId, clusterName, "localhost:9092");
         var clusterVm = new ClusterViewModel(cluster, mockClient);
         return new OpenedClusterViewModel(settingsService, topicSettingsService, clusterVm, clusterName);
+    }
+
+    [Fact]
+    public void Constructor_WhenNoKeyFormatterSetting_ShouldUseDefaultBasicKeyFormatters()
+    {
+        // Arrange & Act
+        var vm = CreateViewModel();
+
+        // Assert
+        Assert.Equal("Unknown", vm.KeyFormatterNames[0]);
+        Assert.Contains("Text", vm.KeyFormatterNames);
+        Assert.Contains("Int32", vm.KeyFormatterNames);
+        Assert.Contains("UInt64", vm.KeyFormatterNames);
+        Assert.DoesNotContain("Json", vm.KeyFormatterNames);
+    }
+
+    [Fact]
+    public void Constructor_WhenConfiguredKeyFormatterNames_ShouldFilterToSupportedBuiltIns()
+    {
+        // Arrange
+        settingsService.GetValue("KeyFormatterNames")
+            .Returns("[\"Int16\", \"Text\", \"CustomPlugin\"]");
+
+        // Act
+        var vm = CreateViewModel();
+
+        // Assert
+        Assert.Equal(new List<string> { "Unknown", "Int16", "Text" }, vm.KeyFormatterNames);
+    }
+
+    [Fact]
+    public void Constructor_WhenNoValueFormatterSetting_ShouldUseAllAvailableValueFormatters()
+    {
+        // Arrange & Act
+        var vm = CreateViewModel();
+
+        // Assert
+        Assert.Equal("Unknown", vm.ValueFormatterNames[0]);
+        Assert.Contains("Json", vm.ValueFormatterNames);
+        Assert.Contains("Text", vm.ValueFormatterNames);
+        Assert.Contains("Int32", vm.ValueFormatterNames);
+    }
+
+    [Fact]
+    public void Constructor_WhenConfiguredValueFormatterNames_ShouldAllowConfiguredSubsetIncludingPlugins()
+    {
+        // Arrange
+        settingsService.GetValue("ValueFormatterNames")
+            .Returns("[\"Json\", \"Text\", \"PluginX\"]");
+
+        // Act
+        var vm = CreateViewModel();
+
+        // Assert
+        Assert.Equal(new List<string> { "Unknown", "Json", "Text" }, vm.ValueFormatterNames);
     }
 
     #region LoadTopicsAsync
@@ -424,14 +479,14 @@ public class OpenedClusterViewModelBusinessLogicTests
 
         vm.SelectedNode = vm.Topics[0];
         vm.Topics[0].FormatterName = "Text";
-        vm.Topics[0].KeyFormatterName = "Number";
+        vm.Topics[0].KeyFormatterName = "Int32";
 
         // Act
         await vm.SaveTopicSettingsAsync();
 
         // Assert
         topicSettingsService.Received(1).SetSettings("c1", "test-topic",
-            Arg.Is<TopicSettings>(s => s.ValueFormatter == "Text" && s.KeyFormatter == "Number"),
+            Arg.Is<TopicSettings>(s => s.ValueFormatter == "Text" && s.KeyFormatter == "Int32"),
             false);
     }
 
@@ -490,6 +545,37 @@ public class OpenedClusterViewModelBusinessLogicTests
         // Assert — message should have been reformatted
         Assert.Equal("Text", msgVm.FormatterName);
         Assert.Equal("Text", msgVm.KeyFormatterName);
+    }
+
+    [AvaloniaFact]
+    public async Task SaveTopicSettings_WhenAutoSelected_ShouldGuessAndPersistFormatterNames()
+    {
+        // Arrange
+        var vm = CreateViewModel();
+        var topics = new List<Topic> { new("test-topic", new List<Partition> { new(0) }) };
+        mockClient.GetTopicsAsync("c1").Returns(Task.FromResult<IList<Topic>>(topics));
+        await vm.LoadTopicsAsync();
+        vm.IsCurrent = true;
+        mockClient.GetMessageStream("c1", "test-topic", Arg.Any<FetchOptions>(), Arg.Any<CancellationToken>())
+            .Returns(new MessageStream());
+
+        vm.SelectedNode = vm.Topics[0];
+        var msg = new Message(1640995200000, new Dictionary<string, byte[]>(),
+            new byte[] { 0, 0, 0, 1 }, Encoding.UTF8.GetBytes("{\"id\":1}"));
+        vm.CurrentMessages.Add(new MessageViewModel(msg, "Text", "Text"));
+
+        vm.Topics[0].FormatterName = "Unknown";
+        vm.Topics[0].KeyFormatterName = "Unknown";
+
+        // Act
+        await vm.SaveTopicSettingsAsync();
+
+        // Assert
+        Assert.NotEqual("Unknown", vm.Topics[0].FormatterName);
+        Assert.NotEqual("Unknown", vm.Topics[0].KeyFormatterName);
+        topicSettingsService.Received(1).SetSettings("c1", "test-topic",
+            Arg.Is<TopicSettings>(s => s.ValueFormatter != null && s.KeyFormatter != null),
+            false);
     }
 
     [AvaloniaFact]

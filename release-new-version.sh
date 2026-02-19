@@ -3,54 +3,71 @@
 set -e
 
 PROPS_FILE="Directory.Build.props"
+INSTALLER_FILE="Installer/install_windows.iss"
+
+echo "INFO: Starting release workflow"
 
 # 1. Ensure we're on master
+echo "INFO: Checking current branch..."
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+echo "INFO: Current branch is $CURRENT_BRANCH"
 if [ "$CURRENT_BRANCH" != "master" ]; then
-  echo "❌ You must be on master branch."
+  echo "ERROR: You must be on master branch."
   exit 1
 fi
+echo "INFO: Branch check passed."
 
 # 2. Ensure working tree is clean
+echo "INFO: Checking working tree status..."
 if [ -n "$(git status --porcelain)" ]; then
-  echo "❌ Working directory not clean. Commit or stash changes."
+  echo "ERROR: Working directory not clean. Commit or stash changes."
   exit 1
 fi
+echo "INFO: Working tree is clean."
 
 # 3. Extract version from Directory.Build.props
-VERSION=$(grep -oPm1 "(?<=<Version>)[^<]+" "$PROPS_FILE")
-
+echo "INFO: Reading version from $PROPS_FILE..."
+VERSION=$(sed -nE 's/.*<Version>([^<]+)<\/Version>.*/\1/p' "$PROPS_FILE" | head -1)
 if [ -z "$VERSION" ]; then
-  echo "❌ Could not find <Version> in $PROPS_FILE"
+  echo "ERROR: Could not find <Version> in $PROPS_FILE"
   exit 1
 fi
+echo "INFO: Parsed app version: $VERSION"
 
 TAG="v$VERSION"
+echo "INFO: Release tag will be $TAG"
 
 # 4. Verify installer version matches
-INSTALLER_FILE="Installer/install_windows.iss"
-INSTALLER_VERSION=$(grep -oPm1 "(?<=AppVersion=)[^\\s]+" "$INSTALLER_FILE" | head -1)
-
+echo "INFO: Reading installer version from $INSTALLER_FILE..."
+INSTALLER_VERSION=$(sed -nE 's/^[[:space:]]*AppVersion=([^[:space:]]+).*/\1/p' "$INSTALLER_FILE" | head -1)
 if [ -z "$INSTALLER_VERSION" ]; then
-  echo "❌ Could not find AppVersion in $INSTALLER_FILE"
+  echo "ERROR: Could not find AppVersion in $INSTALLER_FILE"
   exit 1
 fi
+echo "INFO: Parsed installer version: $INSTALLER_VERSION"
 
 if [ "$INSTALLER_VERSION" != "$VERSION" ]; then
-  echo "❌ Version mismatch: Directory.Build.props has $VERSION but $INSTALLER_FILE has $INSTALLER_VERSION"
+  echo "ERROR: Version mismatch: Directory.Build.props has $VERSION but $INSTALLER_FILE has $INSTALLER_VERSION"
   exit 1
 fi
+echo "INFO: Version consistency check passed."
 
 # 5. Check if tag already exists
+echo "INFO: Checking whether tag $TAG already exists..."
 if git rev-parse "$TAG" >/dev/null 2>&1; then
-  echo "❌ Tag $TAG already exists."
+  echo "ERROR: Tag $TAG already exists."
   exit 1
 fi
+echo "INFO: Tag $TAG does not exist yet."
 
 # 6. Create annotated tag (opens editor for release notes)
+echo "INFO: Creating annotated tag $TAG..."
 git tag -a "$TAG"
+echo "INFO: Tag $TAG created."
 
 # 7. Push tag
+echo "INFO: Pushing tag $TAG to origin..."
+git push
 git push origin "$TAG"
 
-echo "✅ Release $TAG created and pushed."
+echo "OK: Release $TAG created and pushed."

@@ -92,27 +92,61 @@ public class TopicSettingsService : ITopicSettingsService
 
     public void SetSettings(string clusterId, string topicName, TopicSettings settings, bool applyToAllClusters = false)
     {
+        var keyFormatter = NormalizeKnownFormatter(settings.KeyFormatter);
+        var valueFormatter = NormalizeKnownFormatter(settings.ValueFormatter);
+        var hasKnownFormatter = keyFormatter != null || valueFormatter != null;
+
         if (!clusterSettings.TryGetValue(clusterId, out var topicMap))
         {
             topicMap = new Dictionary<string, TopicSettings>();
             clusterSettings[clusterId] = topicMap;
         }
 
-        topicMap[topicName] = new TopicSettings
+        if (hasKnownFormatter)
         {
-            KeyFormatter = settings.KeyFormatter,
-            ValueFormatter = settings.ValueFormatter
-        };
+            topicMap[topicName] = new TopicSettings
+            {
+                KeyFormatter = keyFormatter,
+                ValueFormatter = valueFormatter
+            };
+        }
+        else
+        {
+            topicMap.Remove(topicName);
+            if (topicMap.Count == 0)
+            {
+                clusterSettings.Remove(clusterId);
+            }
+        }
 
         if (applyToAllClusters)
         {
-            globalSettings[topicName] = new TopicSettings
+            if (hasKnownFormatter)
             {
-                KeyFormatter = settings.KeyFormatter,
-                ValueFormatter = settings.ValueFormatter
-            };
+                globalSettings[topicName] = new TopicSettings
+                {
+                    KeyFormatter = keyFormatter,
+                    ValueFormatter = valueFormatter
+                };
+            }
+            else
+            {
+                globalSettings.Remove(topicName);
+            }
         }
 
         Save();
+    }
+
+    private static string? NormalizeKnownFormatter(string? formatterName)
+    {
+        if (string.IsNullOrWhiteSpace(formatterName) ||
+            formatterName == "Auto" ||
+            formatterName == OpenedClusterViewModel.UnknownFormatterName)
+        {
+            return null;
+        }
+
+        return formatterName;
     }
 }

@@ -11,10 +11,10 @@ public class MessageViewModelTests
     {
         // Arrange
         var message = CreateTestMessage();
-        
+
         // Act
         var viewModel = new MessageViewModel(message, "Text", "Text");
-        
+
         // Assert
         Assert.Equal(message, viewModel.Message);
         Assert.Equal(message.Partition, viewModel.Partition);
@@ -29,10 +29,10 @@ public class MessageViewModelTests
         // Arrange
         var message = CreateTestMessage(epochMillis: 1640995200000); // 2022-01-01 00:00:00 UTC
         var viewModel = new MessageViewModel(message, "Text", "Text");
-        
+
         // Act
         var timestamp = viewModel.Timestamp;
-        
+
         // Assert
         Assert.Contains("2022", timestamp);
         Assert.Contains("01-01-2022", timestamp);
@@ -44,10 +44,10 @@ public class MessageViewModelTests
         // Arrange
         var message = CreateTestMessage(value: Encoding.UTF8.GetBytes("test message content"));
         var viewModel = new MessageViewModel(message, "Text", "Text");
-        
+
         // Act
         viewModel.FormatterName = "Text";
-        
+
         // Assert
         Assert.Equal("test message content", viewModel.DecodedMessage);
         Assert.Equal("test message content", viewModel.Summary);
@@ -57,15 +57,15 @@ public class MessageViewModelTests
     public void FormatterName_WhenSetWithLongContent_ShouldTruncateSummary()
     {
         // Arrange
-        var longContent = new string('a', 200);
+        var longContent = new string('a', 2 * MessageViewModel.MAX_SUMMARY_LEN);
         var message = CreateTestMessage(value: Encoding.UTF8.GetBytes(longContent));
         var viewModel = new MessageViewModel(message, "Text", "Text");
-        
+
         // Act
         viewModel.FormatterName = "Text";
-        
+
         // Assert
-        Assert.True(viewModel.Summary.Length <= 103); // 100 + "..."
+        Assert.True(viewModel.Summary.Length == MessageViewModel.MAX_SUMMARY_LEN + 3); // summary + "..."
         Assert.EndsWith("...", viewModel.Summary);
     }
 
@@ -75,10 +75,10 @@ public class MessageViewModelTests
         // Arrange
         var message = CreateTestMessage(key: Encoding.UTF8.GetBytes("test key"));
         var viewModel = new MessageViewModel(message, "Text", "Text");
-        
+
         // Act
         viewModel.KeyFormatterName = "Text";
-        
+
         // Assert
         Assert.Equal("test key", viewModel.Key);
     }
@@ -89,10 +89,10 @@ public class MessageViewModelTests
         // Arrange
         var message = CreateTestMessage(value: Encoding.UTF8.GetBytes("test content"));
         var viewModel = new MessageViewModel(message, "Text", "Text");
-        
+
         // Act
         viewModel.UseObjectFilter = false;
-        
+
         // Assert
         Assert.Equal("test content", viewModel.DisplayText);
     }
@@ -103,10 +103,10 @@ public class MessageViewModelTests
         // Arrange
         var message = CreateTestMessage(value: Encoding.UTF8.GetBytes("test content"));
         var viewModel = new MessageViewModel(message, "Text", "Text");
-        
+
         // Act
         viewModel.LineFilter = "test";
-        
+
         // Assert
         Assert.Contains("test", viewModel.DisplayText);
     }
@@ -117,10 +117,10 @@ public class MessageViewModelTests
         // Arrange
         var message = CreateTestMessage(value: Encoding.UTF8.GetBytes("test content"));
         var viewModel = new MessageViewModel(message, "Text", "Text");
-        
+
         // Act
         viewModel.PrettyFormat();
-        
+
         // Assert
         Assert.Equal("test content", viewModel.DisplayText);
     }
@@ -131,10 +131,10 @@ public class MessageViewModelTests
         // Arrange
         var message = CreateTestMessage();
         var viewModel = new MessageViewModel(message, "Text", "Text");
-        
+
         // Act
         viewModel.Cleanup();
-        
+
         // Assert
         Assert.Equal("", viewModel.DisplayText);
     }
@@ -151,10 +151,10 @@ public class MessageViewModelTests
             if (args.PropertyName == nameof(MessageViewModel.FormatterName))
                 propertyChangedCount++;
         };
-        
+
         // Act
         viewModel.FormatterName = "Text";
-        
+
         // Assert
         Assert.Equal("Text", viewModel.FormatterName);
         Assert.Equal(0, propertyChangedCount);
@@ -172,10 +172,10 @@ public class MessageViewModelTests
             if (args.PropertyName == nameof(MessageViewModel.KeyFormatterName))
                 propertyChangedCount++;
         };
-        
+
         // Act
         viewModel.KeyFormatterName = "Text";
-        
+
         // Assert
         Assert.Equal("Text", viewModel.KeyFormatterName);
         Assert.Equal(0, propertyChangedCount);
@@ -189,10 +189,10 @@ public class MessageViewModelTests
         var viewModel = new MessageViewModel(message, "Text", "Text");
         var changedProperties = new List<string>();
         viewModel.PropertyChanged += (_, args) => changedProperties.Add(args.PropertyName!);
-        
+
         // Act
-        viewModel.FormatterName = "Number";
-        
+        viewModel.FormatterName = "Int32";
+
         // Assert
         Assert.Contains(nameof(MessageViewModel.FormatterName), changedProperties);
     }
@@ -205,10 +205,10 @@ public class MessageViewModelTests
         var viewModel = new MessageViewModel(message, "Text", "Text");
         var changedProperties = new List<string>();
         viewModel.PropertyChanged += (_, args) => changedProperties.Add(args.PropertyName!);
-        
+
         // Act
-        viewModel.KeyFormatterName = "Number";
-        
+        viewModel.KeyFormatterName = "Int32";
+
         // Assert
         Assert.Contains(nameof(MessageViewModel.KeyFormatterName), changedProperties);
     }
@@ -218,10 +218,10 @@ public class MessageViewModelTests
     {
         // Arrange
         var message = CreateTestMessage(key: null, value: null);
-        
+
         // Act
         var viewModel = new MessageViewModel(message, "Text", "Text");
-        
+
         // Assert
         Assert.NotNull(viewModel.DecodedMessage);
         Assert.NotNull(viewModel.DisplayText);
@@ -232,10 +232,10 @@ public class MessageViewModelTests
     {
         // Arrange
         var message = CreateTestMessage(key: null, value: Encoding.UTF8.GetBytes("value"));
-        
+
         // Act
         var viewModel = new MessageViewModel(message, "Text", "Text");
-        
+
         // Assert
         Assert.NotNull(viewModel.Key);
     }

@@ -9,8 +9,8 @@ public class TopicSettingsTests
         var settings = new TopicSettings();
         
         // Assert
-        Assert.Equal("Auto", settings.KeyFormatter);
-        Assert.Equal("Auto", settings.ValueFormatter);
+        Assert.Null(settings.KeyFormatter);
+        Assert.Null(settings.ValueFormatter);
     }
 
     [Fact]

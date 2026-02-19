@@ -100,4 +100,22 @@ public class SettingsServiceTests : IDisposable
         Assert.Equal("14", service.GetValue("FontSize"));
         Assert.Equal("en", service.GetValue("Language"));
     }
+
+    [Fact]
+    public void GetValue_WhenValueIsArray_ShouldReturnCommaSeparated()
+    {
+        // Arrange
+        File.WriteAllText(tempFilePath, """
+        {
+          "KeyFormatterNames": ["Text", "Int32", "UInt32"]
+        }
+        """);
+        var service = new SettingsService(tempFilePath);
+
+        // Act
+        var result = service.GetValue("KeyFormatterNames");
+
+        // Assert
+        Assert.Equal("Text,Int32,UInt32", result);
+    }
 }

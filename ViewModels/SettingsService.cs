@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.IO;
 
 namespace KafkaLens.ViewModels;
@@ -6,7 +7,7 @@ namespace KafkaLens.ViewModels;
 public class SettingsService : ISettingsService
 {
     private readonly string filePath;
-    private Dictionary<string, string> settings = new();
+    private JObject settings = new();
 
     public SettingsService(string filePath)
     {
@@ -21,12 +22,12 @@ public class SettingsService : ISettingsService
             try
             {
                 var json = File.ReadAllText(filePath);
-                settings = JsonConvert.DeserializeObject<Dictionary<string, string>>(json) ?? new();
+                settings = JsonConvert.DeserializeObject<JObject>(json) ?? new JObject();
             }
             catch (Exception ex)
             {
                 Serilog.Log.Error(ex, "Failed to load settings from {FilePath}", filePath);
-                settings = new();
+                settings = new JObject();
             }
         }
     }
@@ -35,7 +36,7 @@ public class SettingsService : ISettingsService
     {
         try
         {
-            var json = JsonConvert.SerializeObject(settings, Newtonsoft.Json.Formatting.Indented);
+            var json = settings.ToString(Newtonsoft.Json.Formatting.Indented);
             var directory = Path.GetDirectoryName(filePath);
             if (directory != null && !Directory.Exists(directory))
             {
@@ -51,13 +52,23 @@ public class SettingsService : ISettingsService
 
     public string? GetValue(string key)
     {
-        settings.TryGetValue(key, out var val);
-        return val;
+        if (!settings.TryGetValue(key, out var value))
+        {
+            return null;
+        }
+
+        return value.Type switch
+        {
+            JTokenType.String => value.Value<string>(),
+            JTokenType.Array => string.Join(",", value.Values<string>().Where(v => !string.IsNullOrWhiteSpace(v))),
+            JTokenType.Null => null,
+            _ => value.ToString()
+        };
     }
 
     public void SetValue(string key, string value)
     {
-        settings[key] = value;
+        settings[key] = JValue.CreateString(value);
         Save();
     }
 }

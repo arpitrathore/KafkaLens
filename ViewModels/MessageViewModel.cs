@@ -6,7 +6,7 @@ namespace KafkaLens.ViewModels;
 
 public sealed partial class MessageViewModel : ViewModelBase
 {
-    const int MAX_SUMMARY_LEN = 100;
+    public const int MAX_SUMMARY_LEN = 150;
 
     private readonly Message message;
 
@@ -17,9 +17,9 @@ public sealed partial class MessageViewModel : ViewModelBase
     public int Partition => message.Partition;
     public long Offset => message.Offset;
     [ObservableProperty] private string? key;
-    public string Summary { get; set; } = null!;
-    public string DecodedMessage { get; set; } = null!;
-    public string FormattedMessage { get; set; } = null!;
+    [ObservableProperty] private string summary = null!;
+    [ObservableProperty] private string decodedMessage = null!;
+    [ObservableProperty] private string formattedMessage = null!;
 
     public string Timestamp
     {
@@ -40,10 +40,11 @@ public sealed partial class MessageViewModel : ViewModelBase
 
             SetProperty(ref field, value);
             formatter = FormatterFactory.Instance.GetFormatter(value);
-            DecodedMessage = formatter.Format(message.Value ?? Array.Empty<byte>(), false) ?? message.ValueText;
-            var limit = Math.Min(MAX_SUMMARY_LEN, DecodedMessage.Length);
-            Summary = DecodedMessage[..limit].ReplaceLineEndings(" ")
-                      + (limit < DecodedMessage.Length ? "..." : "");
+            var decoded = formatter.Format(message.Value ?? Array.Empty<byte>(), false) ?? message.ValueText;
+            var limit = Math.Min(MAX_SUMMARY_LEN, decoded.Length);
+            Summary = decoded[..limit].ReplaceLineEndings(" ")
+                      + (limit < decoded.Length ? "..." : "");
+            DecodedMessage = decoded;
 
             UpdateText();
         }
