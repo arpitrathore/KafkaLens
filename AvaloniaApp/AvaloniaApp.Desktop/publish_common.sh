@@ -13,8 +13,8 @@ SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 REPO_ROOT="$SCRIPT_DIR/../.."
 RELEASES_DIR="$REPO_ROOT/Releases"
 
-# Extract version from Directory.Build.props
-VERSION=$(grep -oP '(?<=<Version>)[^<]+' "$REPO_ROOT/Directory.Build.props")
+# Extract version from Directory.Build.props (locale-safe, no PCRE dependency)
+VERSION=$(sed -nE 's/.*<Version>([^<]+)<\/Version>.*/\1/p' "$REPO_ROOT/Directory.Build.props" | head -1)
 
 # Publish the application for a given runtime
 # Usage: publish_app <runtime> <output_dir>
