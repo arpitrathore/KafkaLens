@@ -170,7 +170,7 @@ public partial class Browser : UserControl
         {
             _textMateInstallation.SetGrammar(_registryOptions.GetScopeByLanguageId(jsonLanguage.Id));
         }
-        
+
         ApplySelectionColors();
     }
 
@@ -187,7 +187,7 @@ public partial class Browser : UserControl
     private void ApplySelectionColors()
     {
         if (MessageViewer?.TextArea == null) return;
-        
+
         var app = Avalonia.Application.Current;
         if (app?.Resources == null) return;
 
@@ -209,11 +209,10 @@ public partial class Browser : UserControl
 
     private void UserControl_KeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.F)
-        {
-            var positiveFilterBox = MessagesToolbar.FindControl<TextBox>("PositiveFilterBox");
-            positiveFilterBox?.Focus();
-            e.Handled = true;
-        }
+        if (e is not { KeyModifiers: KeyModifiers.Control, Key: Key.F }) return;
+
+        var positiveFilterBox = MessagesToolbar.FindControl<TextBox>("PositiveFilterBox");
+        positiveFilterBox?.Focus();
+        e.Handled = true;
     }
 }
